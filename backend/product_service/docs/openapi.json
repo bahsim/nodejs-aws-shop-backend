@@ -1,0 +1,169 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+      "title": "Product Service API",
+      "description": "API for managing products in the store",
+      "version": "1.0.0",
+      "contact": {
+        "name": "Your Name",
+        "email": "your.email@example.com"
+      }
+    },
+    "servers": [
+      {
+        "url": "https://your-api-gateway-url.execute-api.us-east-1.amazonaws.com/prod",
+        "description": "Production server"
+      },
+      {
+        "url": "http://localhost:3000",
+        "description": "Local development"
+      }
+    ],
+    "paths": {
+      "/products": {
+        "get": {
+          "summary": "Get all products",
+          "description": "Returns a list of all available products",
+          "operationId": "getProductsList",
+          "tags": ["Products"],
+          "responses": {
+            "200": {
+              "description": "Successful operation",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/Product"
+                    }
+                  }
+                }
+              }
+            },
+            "500": {
+              "description": "Internal Server Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/Error"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/products/{productId}": {
+        "get": {
+          "summary": "Get product by ID",
+          "description": "Returns a single product by its ID",
+          "operationId": "getProductsById",
+          "tags": ["Products"],
+          "parameters": [
+            {
+              "name": "productId",
+              "in": "path",
+              "description": "ID of the product to retrieve",
+              "required": true,
+              "schema": {
+                "type": "string",
+                "example": "7567ec4b-b10c-48c5-9345-fc73c48a80aa"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Successful operation",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/Product"
+                  }
+                }
+              }
+            },
+            "400": {
+              "description": "Bad Request - Invalid ID supplied",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/Error"
+                  }
+                }
+              }
+            },
+            "404": {
+              "description": "Product not found",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/Error"
+                  }
+                }
+              }
+            },
+            "500": {
+              "description": "Internal Server Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/Error"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "schemas": {
+        "Product": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid",
+              "example": "7567ec4b-b10c-48c5-9345-fc73c48a80aa"
+            },
+            "title": {
+              "type": "string",
+              "example": "PlayStation 5"
+            },
+            "description": {
+              "type": "string",
+              "example": "Next-gen gaming console"
+            },
+            "price": {
+              "type": "number",
+              "format": "float",
+              "example": 499.99
+            },
+            "count": {
+              "type": "integer",
+              "format": "int32",
+              "example": 24
+            }
+          },
+          "required": ["id", "title", "price", "count"]
+        },
+        "Error": {
+          "type": "object",
+          "properties": {
+            "message": {
+              "type": "string",
+              "example": "Internal server error"
+            }
+          },
+          "required": ["message"]
+        }
+      }
+    },
+    "tags": [
+      {
+        "name": "Products",
+        "description": "Operations about products"
+      }
+    ]
+  }
+  
