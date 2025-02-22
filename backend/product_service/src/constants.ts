@@ -1,5 +1,7 @@
+import { Configuration } from "./config";
+
 export const ALLOWED_ORIGINS = [
-    'https://dsja4dcomgujy.cloudfront.net',
+    Configuration.getConfig().frontendUrl || 'http://localhost:3000',
     'http://localhost:3000'
 ];
 

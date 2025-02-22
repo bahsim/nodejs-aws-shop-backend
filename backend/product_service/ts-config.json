@@ -21,7 +21,7 @@
       "outDir": "./dist"
     },
     "include": [
-      "bin/**/*",
+      "src/bin/**/*",
       "handlers/**/*",
       "*.ts"
     ],
