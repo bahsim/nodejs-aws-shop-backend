@@ -11,7 +11,7 @@
     },
     "servers": [
       {
-        "url": "https://your-api-gateway-url.execute-api.us-east-1.amazonaws.com/prod",
+        "url": "https://ul14jrs9xb.execute-api.eu-west-1.amazonaws.com/prod/",
         "description": "Production server"
       },
       {
