@@ -1,6 +1,12 @@
-import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
+// src/handlers/createProduct.ts
+
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { DynamoDBDocumentClient, PutCommand } from "@aws-sdk/lib-dynamodb";
+import {
+  DynamoDBDocumentClient,
+  TransactWriteCommand,
+  TransactWriteCommandInput,
+} from "@aws-sdk/lib-dynamodb";
+import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import { v4 as uuidv4 } from "uuid";
 import { Configuration } from "../config";
 import { getCorsHeaders } from "../cors";
@@ -8,64 +14,170 @@ import { getCorsHeaders } from "../cors";
 const client = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(client);
 
-export const handler = async (
+const createErrorResponse = (
+  statusCode: number,
+  message: string,
+  headers: Record<string, string>
+): APIGatewayProxyResult => ({
+  statusCode,
+  headers,
+  body: JSON.stringify({ message })
+});
+
+export const createProductLambdaHandler = async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
-  const origin = event?.headers?.origin || "";
-  const config = Configuration.getConfig();
+  // Log incoming request and arguments
+  console.log("Incoming request:", {
+    path: event.path,
+    method: event.httpMethod,
+    headers: event.headers,
+    queryStringParameters: event.queryStringParameters,
+    body: event.body,
+  });
 
+  const origin = event?.headers?.origin || "";
   const headers = getCorsHeaders(origin);
+  const config = Configuration.getConfig();
 
   try {
     if (!event.body) {
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({ message: "Product data is required" }),
-      };
+      console.log("Request validation failed: Missing body");
+      return createErrorResponse(400, "Product data is required", headers);
     }
 
-    const productData = JSON.parse(event.body);
-    const { title, description, price } = productData;
+    let productData;
+    try {
+      productData = JSON.parse(event.body);
+      console.log("Parsed request body:", productData);
+    } catch (e) {
+      console.log("Request validation failed: Invalid JSON");
+      return createErrorResponse(400, "Invalid JSON in request body", headers);
+    }
 
     // Validate required fields
-    if (!title || !description || !price) {
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({
-          message: "Title, description, and price are required",
-        }),
-      };
+    const { title, description, price, count } = productData;
+    if (!title || !description || price === undefined || count === undefined) {
+      return createErrorResponse(
+        400,
+        "Title, description, price, and count are required",
+        headers
+      );
     }
 
-    const product = {
-      id: uuidv4(),
-      title,
-      description,
-      price: Number(price),
+    // Validate title and description
+    if (!title.trim() || !description.trim()) {
+      return createErrorResponse(
+        400,
+        "Title and description cannot be empty",
+        headers
+      );
+    }
+
+    // Validate price and count
+    if (typeof price !== "number" || price <= 0) {
+      return createErrorResponse(
+        400,
+        "Price must be a positive number",
+        headers
+      );
+    }
+
+    if (!Number.isInteger(count) || count < 0) {
+      return createErrorResponse(
+        400,
+        "Count must be a non-negative integer",
+        headers
+      );
+    }
+
+    const productId = uuidv4();
+
+    // Prepare transaction items
+    const transactionInput: TransactWriteCommandInput = {
+      TransactItems: [
+        {
+          // Create product
+          Put: {
+            TableName: config.productsTableName,
+            Item: {
+              id: productId,
+              title: title.trim(),
+              description: description.trim(),
+              price: Number(price),
+            },
+            // Ensure product doesn't already exist
+            ConditionExpression: "attribute_not_exists(id)",
+          },
+        },
+        {
+          // Create stock
+          Put: {
+            TableName: config.stocksTableName,
+            Item: {
+              product_id: productId,
+              count: Number(count),
+            },
+            // Ensure stock doesn't already exist
+            ConditionExpression: "attribute_not_exists(product_id)",
+          },
+        },
+      ],
     };
 
-    await docClient.send(
-      new PutCommand({
-        TableName: config.productsTableName,
-        Item: product,
-      })
+    console.log(
+      "Executing transaction:",
+      JSON.stringify(transactionInput, null, 2)
     );
 
-    return {
-      statusCode: 201,
-      headers,
-      body: JSON.stringify(product),
-    };
+    try {
+      await docClient.send(new TransactWriteCommand(transactionInput));
+
+      // Prepare response with combined product and stock data
+      const createdProduct = {
+        id: productId,
+        title: title.trim(),
+        description: description.trim(),
+        price: Number(price),
+        count: Number(count),
+      };
+
+      console.log("Successfully created product and stock:", createdProduct);
+
+      return {
+        statusCode: 201,
+        headers,
+        body: JSON.stringify(createdProduct),
+      };
+    } catch (error) {
+      console.error("Transaction failed:", error);
+
+      // Check for specific transaction errors
+      if (error instanceof Error) {
+        if (error.name === "TransactionCanceledException") {
+          return createErrorResponse(
+            409,
+            "Product creation failed due to conflict",
+            headers
+          );
+        }
+        if (error.name === "ValidationException") {
+          return createErrorResponse(
+            400,
+            "Invalid data for product creation",
+            headers
+          );
+        }
+      }
+
+      throw error; // Re-throw for general error handling
+    }
   } catch (error) {
     console.error("Error creating product:", error);
-    return {
-      statusCode: 500,
-      headers,
-      body: JSON.stringify({
-        message: "Internal server error while creating product",
-      }),
-    };
+    return createErrorResponse(
+      500,
+      "Internal server error while creating product",
+      headers
+    );
   }
 };

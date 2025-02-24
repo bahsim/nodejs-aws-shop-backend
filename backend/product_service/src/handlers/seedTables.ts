@@ -5,8 +5,9 @@ import {
   PutCommand,
   ScanCommand,
 } from "@aws-sdk/lib-dynamodb";
-import * as https from 'https';
-import * as url from 'url';
+import { APIGatewayProxyEvent } from "aws-lambda";
+import * as https from "https";
+import * as url from "url";
 
 const client = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(client);
@@ -53,8 +54,8 @@ const stocks = products.map((product) => ({
 const sendResponse = async (event: any, status: string, reason?: string) => {
   const responseBody = JSON.stringify({
     Status: status,
-    Reason: reason || 'See CloudWatch logs for details',
-    PhysicalResourceId: event.LogicalResourceId || 'SeedingComplete',
+    Reason: reason || "See CloudWatch logs for details",
+    PhysicalResourceId: event.LogicalResourceId || "SeedingComplete",
     StackId: event.StackId,
     RequestId: event.RequestId,
     LogicalResourceId: event.LogicalResourceId,
@@ -66,31 +67,34 @@ const sendResponse = async (event: any, status: string, reason?: string) => {
     hostname: parsedUrl.hostname,
     port: 443,
     path: parsedUrl.path,
-    method: 'PUT',
+    method: "PUT",
     headers: {
-      'Content-Type': '',
-      'Content-Length': responseBody.length,
+      "Content-Type": "",
+      "Content-Length": responseBody.length,
     },
   };
 
   return new Promise((resolve, reject) => {
     const request = https.request(options, (response) => {
-      response.on('end', () => resolve(undefined));
+      response.on("end", () => resolve(undefined));
     });
 
-    request.on('error', (error) => reject(error));
+    request.on("error", (error) => reject(error));
     request.write(responseBody);
     request.end();
   });
 };
 
-export const seedTablesLambdaHandler = async (event: any) => {
-  try {
-    if (event.RequestType === "Delete") {
-      await sendResponse(event, 'SUCCESS');
-      return;
-    }
+export const seedTablesLambdaHandler = async (event: APIGatewayProxyEvent) => {
+  // Log incoming request and arguments
+  console.log("Incoming request:", {
+    path: event.path,
+    method: event.httpMethod,
+    headers: event.headers,
+    queryStringParameters: event.queryStringParameters,
+  });
 
+  try {
     // Check existing products
     const existingProducts = await docClient.send(
       new ScanCommand({
@@ -109,7 +113,7 @@ export const seedTablesLambdaHandler = async (event: any) => {
 
     if (newProducts.length === 0) {
       console.log("No new products to seed");
-      await sendResponse(event, 'SUCCESS', 'No new products to seed');
+      await sendResponse(event, "SUCCESS", "No new products to seed");
       return;
     }
 
@@ -149,11 +153,18 @@ export const seedTablesLambdaHandler = async (event: any) => {
     }
 
     console.log(`Successfully seeded ${newProducts.length} new products`);
-    await sendResponse(event, 'SUCCESS', `Seeded ${newProducts.length} new products`);
-
+    await sendResponse(
+      event,
+      "SUCCESS",
+      `Seeded ${newProducts.length} new products`
+    );
   } catch (error) {
     console.error("Error seeding tables:", error);
-    await sendResponse(event, 'FAILED', error instanceof Error ? error.message : 'Unknown error');
+    await sendResponse(
+      event,
+      "FAILED",
+      error instanceof Error ? error.message : "Unknown error"
+    );
     throw error;
   }
 };

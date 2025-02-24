@@ -1,6 +1,6 @@
 // product-service-stack.ts
 import * as cdk from "aws-cdk-lib";
-import * as iam from 'aws-cdk-lib/aws-iam';
+import * as iam from "aws-cdk-lib/aws-iam";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as apigateway from "aws-cdk-lib/aws-apigateway";
@@ -52,7 +52,7 @@ export class ProductServiceStack extends cdk.Stack {
     const api = new apigateway.RestApi(this, "ProductsApi", {
       restApiName: "Products Service",
       defaultCorsPreflightOptions: {
-        allowOrigins: ["http://localhost:3000"], // Add your frontend URL here
+        allowOrigins: ["http://localhost:3000", config.frontendUrl],
         allowMethods: ["GET", "OPTIONS"],
         allowHeaders: [
           "Content-Type",
@@ -72,10 +72,7 @@ export class ProductServiceStack extends cdk.Stack {
       new apigateway.LambdaIntegration(getProductsList)
     );
 
-    products.addMethod(
-      "POST",
-      new apigateway.LambdaIntegration(createProduct)
-    );
+    products.addMethod("POST", new apigateway.LambdaIntegration(createProduct));
 
     // Create /products/{productId} endpoint
     const product = products.addResource("{productId}");
@@ -102,7 +99,7 @@ export class ProductServiceStack extends cdk.Stack {
 
     // Create the seeding Lambda function
     const seedFunction = new nodejs.NodejsFunction(this, "SeedTablesFunction", {
-      entry: path.join(__dirname, "../handlers/seed/seed.ts"),
+      entry: path.join(__dirname, "../handlers/seedTables.ts"),
       handler: "seedTablesLambdaHandler",
       runtime: cdk.aws_lambda.Runtime.NODEJS_18_X,
       timeout: cdk.Duration.seconds(30),

@@ -10,6 +10,14 @@ const docClient = DynamoDBDocumentClient.from(client);
 export const getProductsByIdLambdaHandler = async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
+  // Log incoming request and arguments
+  console.log('Incoming request:', {
+    path: event.path,
+    method: event.httpMethod,
+    headers: event.headers,
+    queryStringParameters: event.queryStringParameters
+  });
+
   const origin = event?.headers?.origin || "";
   const config = Configuration.getConfig();
   // const dbConfig = Configuration.getDatabaseConfig();
