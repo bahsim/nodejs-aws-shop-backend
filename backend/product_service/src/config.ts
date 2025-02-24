@@ -1,11 +1,11 @@
-import { DatabaseConfig, EnvironmentVariables } from "./types";
+import { EnvironmentVariables } from "./types";
 import * as dotenv from 'dotenv';
 
 dotenv.config();
 
 export class Configuration {
     private static validateEnv(): EnvironmentVariables {
-      const required = ['FRONTEND_URL'];
+      const required = ['FRONTEND_URL', 'PRODUCTS_TABLE_NAME', 'STOCKS_TABLE_NAME'];
       
       for (const item of required) {
         if (!process.env[item]) {
@@ -21,20 +21,10 @@ export class Configuration {
       
       return {
         frontendUrl: env.FRONTEND_URL,
-        databaseUrl: env.DATABASE_URL,
+        productsTableName: env.PRODUCTS_TABLE_NAME,
+        stocksTableName: env.STOCKS_TABLE_NAME,
         debug: env.DEBUG_MODE,
         region: env.REGION || 'eu-west-1',
       };
-    }
-  
-    public static getDatabaseConfig(): DatabaseConfig {
-      const dbUrl = new URL(process.env.DATABASE_URL || '');
-      
-      return {
-        host: dbUrl.hostname,
-        port: parseInt(dbUrl.port, 10),
-        username: dbUrl.username,
-        password: dbUrl.password
-      };
-    }
+    }  
   }
