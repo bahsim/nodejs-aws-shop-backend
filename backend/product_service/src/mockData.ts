@@ -22,3 +22,19 @@ export const products = [
     }
     // Add more products as needed
   ];
+
+  export const stocks = [
+    {
+      product_id: '1',
+      count: 100
+    },
+    {
+      product_id: '2',
+      count: 50
+    },
+    {
+      product_id: '3',
+      count: 75
+    }
+    // Add more products as needed
+  ];

@@ -7,7 +7,7 @@ import { getCorsHeaders } from "../cors";
 const client = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(client);
 
-export const getProductsListLambdaHandler = async (
+export const getProductsList = async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
   // Log incoming request and arguments
@@ -22,6 +22,25 @@ export const getProductsListLambdaHandler = async (
   const config = Configuration.getConfig();
 
   const headers = getCorsHeaders(origin);
+
+  if (!headers) {
+    return {
+      statusCode: 403,
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ message: "Forbidden" }),
+    };
+  }
+
+  // Handle preflight requests
+  if (event.httpMethod === "OPTIONS") {
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({ message: "Preflight request successful" }),
+    };
+  }
 
   try {
     // Get all products

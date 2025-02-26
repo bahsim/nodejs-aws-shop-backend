@@ -2,15 +2,14 @@
 import { APIGatewayProxyEvent } from 'aws-lambda';
 import { v4 as uuidv4 } from 'uuid';
 import { Configuration } from '../../config';
-import { createProductLambdaHandler } from '../../handlers/createProduct';
+import { createProduct } from '../../handlers/createProduct';
 import { jest, describe, it, expect, beforeEach, afterEach } from '@jest/globals';
 
 // Mock UUID generation
 jest.mock('uuid');
 
 // Mock DynamoDB client
-// @ts-ignore
-const mockSend = jest.fn().mockResolvedValue({});
+const mockSend = jest.fn().mockResolvedValue({} as never);
 jest.mock('@aws-sdk/lib-dynamodb', () => ({
   DynamoDBDocumentClient: {
     from: jest.fn().mockReturnValue({
@@ -66,7 +65,7 @@ describe("createProduct Lambda Handler", () => {
     const mockProductId = "mock-uuid";
     (uuidv4 as jest.Mock).mockReturnValue(mockProductId);
 
-    const response = await createProductLambdaHandler(event);
+    const response = await createProduct(event);
 
     // Verify transaction was called with correct items
     expect(mockSend).toHaveBeenCalledWith(
@@ -128,7 +127,7 @@ describe("createProduct Lambda Handler", () => {
     // @ts-ignore
     mockSend.mockRejectedValueOnce(transactionError);
 
-    const response = await createProductLambdaHandler(event);
+    const response = await createProduct(event);
 
     expect(response.statusCode).toBe(409);
     expect(response.headers).toEqual(mockHeaders);
@@ -152,7 +151,7 @@ describe("createProduct Lambda Handler", () => {
         body: JSON.stringify(productData)
       } as APIGatewayProxyEvent;
 
-      const response = await createProductLambdaHandler(event);
+      const response = await createProduct(event);
 
       expect(response.statusCode).toBe(400);
       expect(response.headers).toEqual(mockHeaders);
@@ -165,7 +164,7 @@ describe("createProduct Lambda Handler", () => {
   it("should return 400 if body is missing", async () => {
     const event = {} as APIGatewayProxyEvent;
     
-    const response = await createProductLambdaHandler(event);
+    const response = await createProduct(event);
 
     expect(response.statusCode).toBe(400);
     expect(response.headers).toEqual(mockHeaders);
@@ -188,7 +187,7 @@ describe("createProduct Lambda Handler", () => {
         body: JSON.stringify(invalidData)
       } as APIGatewayProxyEvent;
 
-      const response = await createProductLambdaHandler(event);
+      const response = await createProduct(event);
 
       expect(response.statusCode).toBe(400);
       expect(response.headers).toEqual(mockHeaders);
@@ -213,7 +212,7 @@ describe("createProduct Lambda Handler", () => {
         body: JSON.stringify(productData)
       } as APIGatewayProxyEvent;
 
-      const response = await createProductLambdaHandler(event);
+      const response = await createProduct(event);
 
       expect(response.statusCode).toBe(400);
       expect(response.headers).toEqual(mockHeaders);
@@ -239,7 +238,7 @@ describe("createProduct Lambda Handler", () => {
     // @ts-ignore
     mockSend.mockRejectedValueOnce(new Error("Unexpected error"));
 
-    const response = await createProductLambdaHandler(event);
+    const response = await createProduct(event);
 
     expect(response.statusCode).toBe(500);
     expect(response.headers).toEqual(mockHeaders);

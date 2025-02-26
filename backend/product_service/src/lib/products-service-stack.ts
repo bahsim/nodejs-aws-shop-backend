@@ -28,7 +28,7 @@ export class ProductServiceStack extends cdk.Stack {
       runtime: lambda.Runtime.NODEJS_18_X,
       functionName: "GetProductsList",
       entry: path.join(__dirname, "../handlers/getProductsList.ts"),
-      handler: "getProductsListLambdaHandler",
+      handler: "getProductsList",
       environment,
     });
 
@@ -36,7 +36,7 @@ export class ProductServiceStack extends cdk.Stack {
       runtime: lambda.Runtime.NODEJS_18_X,
       functionName: "GetProductsById",
       entry: path.join(__dirname, "../handlers/getProductsById.ts"),
-      handler: "getProductsByIdLambdaHandler",
+      handler: "getProductsById",
       environment,
     });
 
@@ -44,7 +44,7 @@ export class ProductServiceStack extends cdk.Stack {
       runtime: lambda.Runtime.NODEJS_18_X,
       functionName: "CreateProduct",
       entry: path.join(__dirname, "../handlers/createProduct.ts"),
-      handler: "createProductLambdaHandler",
+      handler: "createProduct",
       environment,
     });
 
@@ -100,7 +100,7 @@ export class ProductServiceStack extends cdk.Stack {
     // Create the seeding Lambda function
     const seedFunction = new nodejs.NodejsFunction(this, "SeedTablesFunction", {
       entry: path.join(__dirname, "../handlers/seedTables.ts"),
-      handler: "seedTablesLambdaHandler",
+      handler: "seedTables",
       runtime: cdk.aws_lambda.Runtime.NODEJS_18_X,
       timeout: cdk.Duration.seconds(30),
       environment: {

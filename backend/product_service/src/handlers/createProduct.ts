@@ -24,7 +24,7 @@ const createErrorResponse = (
   body: JSON.stringify({ message })
 });
 
-export const createProductLambdaHandler = async (
+export const createProduct = async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
   // Log incoming request and arguments
@@ -40,6 +40,25 @@ export const createProductLambdaHandler = async (
   const headers = getCorsHeaders(origin);
   const config = Configuration.getConfig();
 
+  if (!headers) {
+    return {
+      statusCode: 403,
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ message: "Forbidden" }),
+    };
+  }
+
+  // Handle preflight requests
+  if (event.httpMethod === "OPTIONS") {
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({ message: "Preflight request successful" }),
+    };
+  }
+  
   try {
     if (!event.body) {
       console.log("Request validation failed: Missing body");

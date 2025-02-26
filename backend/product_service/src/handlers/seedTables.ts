@@ -85,7 +85,7 @@ const sendResponse = async (event: any, status: string, reason?: string) => {
   });
 };
 
-export const seedTablesLambdaHandler = async (event: APIGatewayProxyEvent) => {
+export const seedTables = async (event: APIGatewayProxyEvent) => {
   // Log incoming request and arguments
   console.log("Incoming request:", {
     path: event.path,

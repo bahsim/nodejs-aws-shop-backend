@@ -7,7 +7,7 @@ import { getCorsHeaders } from "../cors";
 const client = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(client);
 
-export const getProductsByIdLambdaHandler = async (
+export const getProductsById = async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
   // Log incoming request and arguments
@@ -15,7 +15,7 @@ export const getProductsByIdLambdaHandler = async (
     path: event.path,
     method: event.httpMethod,
     headers: event.headers,
-    queryStringParameters: event.queryStringParameters
+    pathParameters: event.pathParameters
   });
 
   const origin = event?.headers?.origin || "";
@@ -29,6 +29,25 @@ export const getProductsByIdLambdaHandler = async (
   }
 
   const headers = getCorsHeaders(origin);
+
+  if (!headers) {
+    return {
+      statusCode: 403,
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ message: "Forbidden" }),
+    };
+  }
+
+  // Handle preflight requests
+  if (event.httpMethod === "OPTIONS") {
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({ message: "Preflight request successful" }),
+    };
+  }
 
   try {
     const productId = event.pathParameters?.productId;
@@ -49,7 +68,7 @@ export const getProductsByIdLambdaHandler = async (
       })
     );
 
-    if (!productResult.Item) {
+    if (!productResult?.Item) {
       return {
         statusCode: 404,
         headers,
@@ -71,7 +90,7 @@ export const getProductsByIdLambdaHandler = async (
       title: productResult.Item.title,
       description: productResult.Item.description,
       price: productResult.Item.price,
-      count: stockResult.Item?.count || 0
+      count: stockResult?.Item?.count || 0
     };
 
     return {
