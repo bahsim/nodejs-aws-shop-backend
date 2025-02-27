@@ -1,63 +1,24 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, GetCommand } from "@aws-sdk/lib-dynamodb";
-import { Configuration } from "../config";
-import { getCorsHeaders } from "../cors";
+import { Configuration } from "../../../shared/src/config";
+import { lambdaHandler } from "../../../shared/src/lambdaHandler";
+import { CorsHeaders } from "../../../shared/src/types";
+import { createErrorResponse } from "../../../shared/src/utils";
 
 const client = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(client);
+const config = Configuration.getConfig();
 
-export const getProductsById = async (
-  event: APIGatewayProxyEvent
-): Promise<APIGatewayProxyResult> => {
-  // Log incoming request and arguments
-  console.log('Incoming request:', {
-    path: event.path,
-    method: event.httpMethod,
-    headers: event.headers,
-    pathParameters: event.pathParameters
-  });
-
-  const origin = event?.headers?.origin || "";
-  const config = Configuration.getConfig();
-  // const dbConfig = Configuration.getDatabaseConfig();
-
-  // Use configuration in your logic
-  if (config.debug) {
-    console.log("Debug mode enabled");
-    // console.log('Database config:', dbConfig);
-  }
-
-  const headers = getCorsHeaders(origin);
-
-  if (!headers) {
-    return {
-      statusCode: 403,
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ message: "Forbidden" }),
-    };
-  }
-
-  // Handle preflight requests
-  if (event.httpMethod === "OPTIONS") {
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify({ message: "Preflight request successful" }),
-    };
-  }
-
-  try {
+export const getProductsById = lambdaHandler(
+  async (
+    event: APIGatewayProxyEvent,
+    headers: CorsHeaders
+  ): Promise<APIGatewayProxyResult> => {
     const productId = event.pathParameters?.productId;
 
     if (!productId) {
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({ message: "Product ID is required" }),
-      };
+      return createErrorResponse(400, "Product ID is required", headers);
     }
 
     // Get product details
@@ -69,11 +30,7 @@ export const getProductsById = async (
     );
 
     if (!productResult?.Item) {
-      return {
-        statusCode: 404,
-        headers,
-        body: JSON.stringify({ message: "Product not found" }),
-      };
+      return createErrorResponse(404, "Product not found", headers);
     }
 
     // Get stock information
@@ -90,22 +47,9 @@ export const getProductsById = async (
       title: productResult.Item.title,
       description: productResult.Item.description,
       price: productResult.Item.price,
-      count: stockResult?.Item?.count || 0
+      count: stockResult?.Item?.count || 0,
     };
 
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify(product),
-    };
-  } catch (error) {
-    return {
-      statusCode: 500,
-      headers,
-      body: JSON.stringify({
-        message: "Internal server error",
-        error: error instanceof Error ? error.message : "Unknown error",
-      }),
-    };
+    return createErrorResponse(200, JSON.stringify(product), headers);
   }
-};
+);

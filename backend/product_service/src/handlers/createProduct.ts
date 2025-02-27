@@ -1,5 +1,3 @@
-// src/handlers/createProduct.ts
-
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import {
   DynamoDBDocumentClient,
@@ -8,69 +6,28 @@ import {
 } from "@aws-sdk/lib-dynamodb";
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import { v4 as uuidv4 } from "uuid";
-import { Configuration } from "../config";
-import { getCorsHeaders } from "../cors";
+import { Configuration } from "../../../shared/src/config";
+import { lambdaHandler } from "../../../shared/src/lambdaHandler";
+import { CorsHeaders } from "../../../shared/src/types";
+import { createErrorResponse } from "../../../shared/src/utils";
 
 const client = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(client);
+const config = Configuration.getConfig();
 
-const createErrorResponse = (
-  statusCode: number,
-  message: string,
-  headers: Record<string, string>
-): APIGatewayProxyResult => ({
-  statusCode,
-  headers,
-  body: JSON.stringify({ message })
-});
-
-export const createProduct = async (
-  event: APIGatewayProxyEvent
-): Promise<APIGatewayProxyResult> => {
-  // Log incoming request and arguments
-  console.log("Incoming request:", {
-    path: event.path,
-    method: event.httpMethod,
-    headers: event.headers,
-    queryStringParameters: event.queryStringParameters,
-    body: event.body,
-  });
-
-  const origin = event?.headers?.origin || "";
-  const headers = getCorsHeaders(origin);
-  const config = Configuration.getConfig();
-
-  if (!headers) {
-    return {
-      statusCode: 403,
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ message: "Forbidden" }),
-    };
-  }
-
-  // Handle preflight requests
-  if (event.httpMethod === "OPTIONS") {
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify({ message: "Preflight request successful" }),
-    };
-  }
-  
-  try {
+export const createProduct = lambdaHandler(
+  async (
+    event: APIGatewayProxyEvent,
+    headers: CorsHeaders
+  ): Promise<APIGatewayProxyResult> => {
     if (!event.body) {
-      console.log("Request validation failed: Missing body");
       return createErrorResponse(400, "Product data is required", headers);
     }
 
     let productData;
     try {
       productData = JSON.parse(event.body);
-      console.log("Parsed request body:", productData);
     } catch (e) {
-      console.log("Request validation failed: Invalid JSON");
       return createErrorResponse(400, "Invalid JSON in request body", headers);
     }
 
@@ -144,11 +101,6 @@ export const createProduct = async (
       ],
     };
 
-    console.log(
-      "Executing transaction:",
-      JSON.stringify(transactionInput, null, 2)
-    );
-
     try {
       await docClient.send(new TransactWriteCommand(transactionInput));
 
@@ -161,16 +113,12 @@ export const createProduct = async (
         count: Number(count),
       };
 
-      console.log("Successfully created product and stock:", createdProduct);
-
       return {
         statusCode: 201,
         headers,
         body: JSON.stringify(createdProduct),
       };
     } catch (error) {
-      console.error("Transaction failed:", error);
-
       // Check for specific transaction errors
       if (error instanceof Error) {
         if (error.name === "TransactionCanceledException") {
@@ -191,12 +139,5 @@ export const createProduct = async (
 
       throw error; // Re-throw for general error handling
     }
-  } catch (error) {
-    console.error("Error creating product:", error);
-    return createErrorResponse(
-      500,
-      "Internal server error while creating product",
-      headers
-    );
   }
-};
+);
