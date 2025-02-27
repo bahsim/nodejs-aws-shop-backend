@@ -19,6 +19,14 @@ Make sure you have the following installed:
     cd nodejs-aws-shop-backend
     ```
 
+### CDK Bootstrap
+
+Before deploying CDK applications for the first time in an AWS environment (account/region), you need to bootstrap the environment:
+
+```bash
+cdk bootstrap
+```
+
 ### Running the Services
 
 #### `product_service`

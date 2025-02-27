@@ -22,6 +22,42 @@ Make sure you have [Node.js](https://nodejs.org/) and [AWS CDK](https://aws.amaz
    npm install
    ```
 
+### AWS Configuration
+
+#### Prerequisites
+Before deploying this application, you need to configure your AWS credentials. Make sure you have:
+- AWS CLI installed (`npm install -g aws-cdk`)
+- An AWS account
+- Access Key ID and Secret Access Key with appropriate permissions
+
+### Configure AWS Credentials
+1. Run AWS configure command:
+```bash
+aws configure
+AWS Access Key ID [None]: YOUR_ACCESS_KEY [[1]](https://docs.aws.amazon.com/prescriptive-guidance/latest/modernization-net-applications-security/iam-development.html)
+AWS Secret Access Key [None]: YOUR_SECRET_KEY [[2]](https://docs.aws.amazon.com/toolkit-for-visual-studio/latest/user-guide/deployment-beanstalk-specify-credentials.html)
+Default region name [None]: us-east-1
+Default output format [None]: json
+
+# Verify configuration
+aws configure list
+
+# Configure named profiles (optional)
+aws configure --profile dev
+aws configure --profile prod
+
+# Use specific profile
+aws configure list --profile dev
+```
+
+### CDK Bootstrap
+
+Before deploying CDK applications for the first time in an AWS environment (account/region), you need to bootstrap the environment:
+
+```bash
+cdk bootstrap
+```
+
 ### Deploying the Application
 Deploy the application to AWS using the following command:
 ```sh
@@ -81,14 +117,22 @@ Once deployed, you can access the API at the URL provided in the CloudFormation 
 
 ## Project Structure
 ```
-bin/
-   product_service.ts - Entry point for the AWS CDK application.
-handlers/
-   getProductsList.ts - Lambda function handler for retrieving the list of products.
-mockData.ts - Contains mock data for testing purposes.
+src/
+   bin/
+      product_service.ts - Entry point for the AWS CDK application.
+   handlers/
+      getProductsList.ts - Lambda function handler for retrieving the list of products.
+   lib/
+      products-service-stack.ts - Defines the AWS infrastructure stack for the product service.
+   mock/
+      mockData.ts - Contains mock data for testing purposes.
+node_modules/ - Contains the project's dependencies.
+test/
+   products-service.test.ts - Unit tests for the product service.
+cdk.json - Configuration file for AWS CDK.
 package.json - Defines the project's dependencies and scripts.
-products-service-stack.ts - Defines the AWS infrastructure stack for the product service.
 README.md - Provides an overview and documentation for the project.
+tsconfig.json - TypeScript configuration file.
 ```
 
 ## Contributing

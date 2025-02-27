@@ -1,18 +1,23 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import { products } from "../mockData";
 import { ALLOWED_ORIGINS, CORS_HEADERS } from "../constants";
+import { Configuration } from "../config";
+import { getCorsHeaders } from "../cors";
 
 export const handler = async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
-  const origin = event.headers.origin || "";
+  const origin = event?.headers?.origin || "";
+  const config = Configuration.getConfig();
+  // const dbConfig = Configuration.getDatabaseConfig();
 
-  const headers = {
-    ...CORS_HEADERS,
-    "Access-Control-Allow-Origin": ALLOWED_ORIGINS.includes(origin)
-      ? origin
-      : ALLOWED_ORIGINS[0],
-  };
+   // Use configuration in your logic
+   if (config.debug) {
+    console.log('Debug mode enabled');
+    // console.log('Database config:', dbConfig);
+  }
+
+  const headers = getCorsHeaders(origin);
 
   try {
     const productId = event.pathParameters?.productId;

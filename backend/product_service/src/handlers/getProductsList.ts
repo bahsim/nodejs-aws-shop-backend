@@ -5,7 +5,7 @@ import { ALLOWED_ORIGINS, CORS_HEADERS } from "../constants";
 export const handler = async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
-  const origin = event.headers.origin || "";
+  const origin = event?.headers?.origin || "";
 
   const headers = {
     ...CORS_HEADERS,
