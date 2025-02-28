@@ -4,7 +4,7 @@ import { DynamoDBDocumentClient, GetCommand } from "@aws-sdk/lib-dynamodb";
 import { Configuration } from "../../../shared/src/config";
 import { lambdaHandler } from "../../../shared/src/lambdaHandler";
 import { CorsHeaders } from "../../../shared/src/types";
-import { createErrorResponse } from "../../../shared/src/utils";
+import { createResponse } from "../../../shared/src/utils";
 
 const client = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(client);
@@ -18,7 +18,7 @@ export const getProductsById = lambdaHandler(
     const productId = event.pathParameters?.productId;
 
     if (!productId) {
-      return createErrorResponse(400, "Product ID is required", headers);
+      return createResponse(400, "Product ID is required", headers);
     }
 
     // Get product details
@@ -30,7 +30,7 @@ export const getProductsById = lambdaHandler(
     );
 
     if (!productResult?.Item) {
-      return createErrorResponse(404, "Product not found", headers);
+      return createResponse(404, "Product not found", headers);
     }
 
     // Get stock information
@@ -50,6 +50,6 @@ export const getProductsById = lambdaHandler(
       count: stockResult?.Item?.count || 0,
     };
 
-    return createErrorResponse(200, JSON.stringify(product), headers);
+    return createResponse(200, JSON.stringify(product), headers);
   }
 );

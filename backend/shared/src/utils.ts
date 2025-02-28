@@ -1,14 +1,14 @@
 import { APIGatewayProxyResult } from "aws-lambda";
 
 /**
- * Creates an error response object for API Gateway.
+ * Creates an API Gateway Proxy Response.
  *
  * @param statusCode - The HTTP status code for the response.
- * @param message - The error message or an object containing error details.
- * @param headers - The headers to include in the response.
- * @returns An object representing the API Gateway proxy result.
+ * @param message - The message or object to be included in the response body.
+ * @param headers - The headers to be included in the response.
+ * @returns An object representing the API Gateway Proxy Result.
  */
-export const createErrorResponse = (
+export const createResponse = (
   statusCode: number,
   message: string | Record<string, any>,
   headers: Record<string, string>

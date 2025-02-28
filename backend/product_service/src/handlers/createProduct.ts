@@ -9,7 +9,7 @@ import { v4 as uuidv4 } from "uuid";
 import { Configuration } from "../../../shared/src/config";
 import { lambdaHandler } from "../../../shared/src/lambdaHandler";
 import { CorsHeaders } from "../../../shared/src/types";
-import { createErrorResponse } from "../../../shared/src/utils";
+import { createResponse } from "../../../shared/src/utils";
 
 const client = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(client);
@@ -21,20 +21,20 @@ export const createProduct = lambdaHandler(
     headers: CorsHeaders
   ): Promise<APIGatewayProxyResult> => {
     if (!event.body) {
-      return createErrorResponse(400, "Product data is required", headers);
+      return createResponse(400, "Product data is required", headers);
     }
 
     let productData;
     try {
       productData = JSON.parse(event.body);
     } catch (e) {
-      return createErrorResponse(400, "Invalid JSON in request body", headers);
+      return createResponse(400, "Invalid JSON in request body", headers);
     }
 
     // Validate required fields
     const { title, description, price, count } = productData;
     if (!title || !description || price === undefined || count === undefined) {
-      return createErrorResponse(
+      return createResponse(
         400,
         "Title, description, price, and count are required",
         headers
@@ -43,7 +43,7 @@ export const createProduct = lambdaHandler(
 
     // Validate title and description
     if (!title.trim() || !description.trim()) {
-      return createErrorResponse(
+      return createResponse(
         400,
         "Title and description cannot be empty",
         headers
@@ -52,15 +52,11 @@ export const createProduct = lambdaHandler(
 
     // Validate price and count
     if (typeof price !== "number" || price <= 0) {
-      return createErrorResponse(
-        400,
-        "Price must be a positive number",
-        headers
-      );
+      return createResponse(400, "Price must be a positive number", headers);
     }
 
     if (!Number.isInteger(count) || count < 0) {
-      return createErrorResponse(
+      return createResponse(
         400,
         "Count must be a non-negative integer",
         headers
@@ -122,14 +118,14 @@ export const createProduct = lambdaHandler(
       // Check for specific transaction errors
       if (error instanceof Error) {
         if (error.name === "TransactionCanceledException") {
-          return createErrorResponse(
+          return createResponse(
             409,
             "Product creation failed due to conflict",
             headers
           );
         }
         if (error.name === "ValidationException") {
-          return createErrorResponse(
+          return createResponse(
             400,
             "Invalid data for product creation",
             headers

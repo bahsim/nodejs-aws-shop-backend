@@ -4,7 +4,7 @@ import { DynamoDBDocumentClient, ScanCommand } from "@aws-sdk/lib-dynamodb";
 import { lambdaHandler } from "../../../shared/src/lambdaHandler";
 import { CorsHeaders } from "../../../shared/src/types";
 import { Configuration } from "../../../shared/src/config";
-import { createErrorResponse } from "../../../shared/src/utils";
+import { createResponse } from "../../../shared/src/utils";
 
 const client = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(client);
@@ -43,6 +43,6 @@ export const getProductsList = lambdaHandler(
       count: stocksMap.get(product.id) || 0,
     }));
 
-    return createErrorResponse(200, joinedProducts ?? {}, headers);
+    return createResponse(200, joinedProducts ?? {}, headers);
   }
 );

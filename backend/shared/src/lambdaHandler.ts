@@ -1,30 +1,36 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
-import { createErrorResponse } from "./utils";
+import { createResponse } from "./utils";
 import { getCorsHeaders } from "./cors";
+import { LambdaHandlerType } from "./types";
 
 /**
- * Lambda function wrapper that handles common functionality.
+ * A higher-order function that wraps a Lambda handler to provide common functionality
+ * such as logging, CORS headers, and error handling.
  *
- * @param handler - Function containing the core business logic.
- * @returns AWS Lambda function with API Gateway proxy integration.
+ * @param handler - The actual Lambda handler function to be executed.
+ * @returns A new Lambda handler function with the added functionality.
  *
- * The wrapper function performs the following tasks:
+ * The returned handler function performs the following tasks:
  * 1. Logs the incoming request details.
  * 2. Retrieves and validates CORS headers based on the request origin.
- * 3. Handles preflight (OPTIONS) requests.
- * 4. Executes the provided handler function with the event and headers.
- * 5. Catches and returns an error response if the handler execution fails.
+ * 3. Handles preflight OPTIONS requests.
+ * 4. Executes the provided handler function and returns its result.
+ * 5. Catches any errors thrown by the handler and returns a 500 response.
  *
  * @example
  * ```typescript
- * const myHandler = async (event: APIGatewayProxyEvent, headers: any) => {
- *   // Your business logic here
+ * const myHandler = async (event: APIGatewayProxyEvent, headers: any): Promise<APIGatewayProxyResult> => {
+ *   // Your handler logic here
  * };
- * 
+ *
  * export const main = lambdaHandler(myHandler);
  * ```
+ *
+ * @param event - The API Gateway proxy event object.
+ * @returns A promise that resolves to an API Gateway proxy result object.
  */
-export const lambdaHandler = (handler: Function) => {
+export const lambdaHandler =
+  (handler: LambdaHandlerType) =>
   async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
     console.log("Incoming request:", {
       path: event.path,
@@ -38,32 +44,23 @@ export const lambdaHandler = (handler: Function) => {
     const headers = getCorsHeaders(origin);
 
     if (!headers) {
-      return {
-        statusCode: 403,
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ message: "Forbidden" }),
-      };
+      return createResponse(403, "Forbidden", {
+        "Content-Type": "application/json",
+      });
     }
 
     // Handle preflight requests
     if (event.httpMethod === "OPTIONS") {
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify({ message: "Preflight request successful" }),
-      };
+      return createResponse(200, "Preflight request successful", headers);
     }
 
     try {
-      await handler(event, headers);
+      return await handler(event, headers);
     } catch (error) {
-      return createErrorResponse(
+      return createResponse(
         500,
         "Internal server error while creating product",
         headers
       );
     }
   };
-};
