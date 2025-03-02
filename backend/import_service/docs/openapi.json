@@ -1,0 +1,211 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+      "title": "Import Service",
+      "description": "Service for importing products via CSV files",
+      "version": "1.0.0"
+    },
+    "servers": [
+      {
+        "url": "https://your-api-gateway-url.execute-api.eu-west-1.amazonaws.com/dev"
+      }
+    ],
+    "paths": {
+      "/import": {
+        "get": {
+          "summary": "Get signed URL for file upload",
+          "description": "Returns a pre-signed S3 URL for uploading CSV files",
+          "parameters": [
+            {
+              "name": "name",
+              "in": "query",
+              "required": true,
+              "schema": {
+                "type": "string"
+              },
+              "description": "Name of the file to be uploaded"
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Successful operation",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "url": {
+                        "type": "string",
+                        "description": "Pre-signed URL for file upload"
+                      }
+                    },
+                    "example": {
+                      "url": "https://bucket-name.s3.region.amazonaws.com/uploaded/file.csv?AWSAccessKeyId=..."
+                    }
+                  }
+                }
+              }
+            },
+            "400": {
+              "description": "Invalid input",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "message": {
+                        "type": "string",
+                        "example": "File name is required"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "500": {
+              "description": "Internal server error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "message": {
+                        "type": "string",
+                        "example": "Internal server error"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/import/{fileName}": {
+        "post": {
+          "summary": "Import file processing",
+          "description": "Processes the uploaded CSV file",
+          "parameters": [
+            {
+              "name": "fileName",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "string"
+              },
+              "description": "Name of the file to process"
+            }
+          ],
+          "responses": {
+            "202": {
+              "description": "File accepted for processing",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "message": {
+                        "type": "string",
+                        "example": "File processing started"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "400": {
+              "description": "Invalid input",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "message": {
+                        "type": "string",
+                        "example": "Invalid file format"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "404": {
+              "description": "File not found",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "message": {
+                        "type": "string",
+                        "example": "File not found"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "500": {
+              "description": "Internal server error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "message": {
+                        "type": "string",
+                        "example": "Internal server error"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "schemas": {
+        "Error": {
+          "type": "object",
+          "properties": {
+            "message": {
+              "type": "string",
+              "description": "Error message"
+            }
+          },
+          "required": ["message"]
+        },
+        "SignedUrlResponse": {
+          "type": "object",
+          "properties": {
+            "url": {
+              "type": "string",
+              "description": "Pre-signed URL for file upload"
+            }
+          },
+          "required": ["url"]
+        }
+      },
+      "securitySchemes": {
+        "ApiKeyAuth": {
+          "type": "apiKey",
+          "in": "header",
+          "name": "x-api-key"
+        }
+      }
+    },
+    "security": [
+      {
+        "ApiKeyAuth": []
+      }
+    ],
+    "tags": [
+      {
+        "name": "import",
+        "description": "Import Service operations"
+      }
+    ]
+  }
+  
