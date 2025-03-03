@@ -11,45 +11,144 @@ import { Configuration } from "../config";
 
 const config = Configuration.getConfig();
 
+const environment = {
+  FRONTEND_URL: config.frontendUrl || "",
+  DEBUG_MODE: config.debug || "",
+  REGION: config.region || "",
+  PRODUCTS_TABLE_NAME: config.productsTableName,
+  STOCKS_TABLE_NAME: config.stocksTableName,
+};
+
 export class ProductServiceStack extends cdk.Stack {
+  private readonly productsTable: cdk.aws_dynamodb.ITable;
+  private readonly stocksTable: cdk.aws_dynamodb.ITable;
+  private readonly getProductsList: cdk.aws_lambda_nodejs.NodejsFunction;
+  private readonly getProductsById: cdk.aws_lambda_nodejs.NodejsFunction;
+  private readonly createProduct: cdk.aws_lambda_nodejs.NodejsFunction;
+  private readonly seedTables: cdk.aws_lambda_nodejs.NodejsFunction;
+  private readonly restApi: cdk.aws_apigateway.RestApi;
+  private readonly productsResource: cdk.aws_apigateway.Resource;
+  private readonly productItemResource: cdk.aws_apigateway.Resource;
+
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    const environment = {
-      FRONTEND_URL: config.frontendUrl || "",
-      DEBUG_MODE: config.debug || "",
-      REGION: config.region || "",
-      PRODUCTS_TABLE_NAME: config.productsTableName,
-      STOCKS_TABLE_NAME: config.stocksTableName,
-    };
+    this.productsTable = dynamodb.Table.fromTableName(
+      this,
+      "ImportedProductsTable",
+      "products"
+    );
 
-    // Create Lambda functions
-    const getProductsList = new nodejs.NodejsFunction(this, "GetProductsList", {
+    this.stocksTable = dynamodb.Table.fromTableName(
+      this,
+      "ImportedStocksTable",
+      "stocks"
+    );
+
+    this.getProductsList = this.createGetProductsListFunction();
+    this.getProductsById = this.createGetProductsByIdFunction();
+    this.createProduct = this.createCreateProductFunction();
+    this.seedTables = this.createSeedTables();
+    this.restApi = this.createRestApi();
+
+    this.productsResource = this.restApi.root.addResource("products"); // /products endpoint
+    this.productItemResource = this.productsResource.addResource("{productId}"); // /products/{productId} endpoint
+
+    this.productsResource.addMethod(
+      "GET",
+      new apigateway.LambdaIntegration(this.getProductsList)
+    );
+    this.productsResource.addMethod(
+      "POST",
+      new apigateway.LambdaIntegration(this.createProduct)
+    );
+
+    this.productItemResource.addMethod(
+      "GET",
+      new apigateway.LambdaIntegration(this.getProductsById)
+    );
+
+    this.productsTable.grantWriteData(this.seedTables);
+    this.productsTable.grantWriteData(this.createProduct);
+    this.productsTable.grantReadData(this.getProductsList);
+    this.productsTable.grantReadData(this.getProductsById);
+    this.stocksTable.grantWriteData(this.seedTables);
+    this.stocksTable.grantReadData(this.getProductsList);
+    this.stocksTable.grantReadData(this.getProductsById);
+
+    new cdk.CustomResource(this, "SeedingCustomResource", {
+      serviceToken: this.seedTables.functionArn,
+      properties: {
+        timestamp: Date.now(), // Force update on each deployment
+      },
+    });
+
+    new cdk.CfnOutput(this, "ApiUrl", {
+      value: this.restApi.url,
+      description: "API Gateway endpoint URL",
+    });
+  }
+
+  private createGetProductsListFunction() {
+    return new nodejs.NodejsFunction(this, "GetProductsList", {
       runtime: lambda.Runtime.NODEJS_18_X,
       functionName: "GetProductsList",
       entry: path.join(__dirname, "../handlers/getProductsList.ts"),
       handler: "getProductsList",
       environment,
     });
+  }
 
-    const getProductsById = new nodejs.NodejsFunction(this, "GetProductsById", {
+  private createGetProductsByIdFunction() {
+    return new nodejs.NodejsFunction(this, "GetProductsById", {
       runtime: lambda.Runtime.NODEJS_18_X,
       functionName: "GetProductsById",
       entry: path.join(__dirname, "../handlers/getProductsById.ts"),
       handler: "getProductsById",
       environment,
     });
+  }
 
-    const createProduct = new nodejs.NodejsFunction(this, "CreateProduct", {
+  private createCreateProductFunction() {
+    return new nodejs.NodejsFunction(this, "CreateProduct", {
       runtime: lambda.Runtime.NODEJS_18_X,
       functionName: "CreateProduct",
       entry: path.join(__dirname, "../handlers/createProduct.ts"),
       handler: "createProduct",
       environment,
+      initialPolicy: [
+        new iam.PolicyStatement({
+          actions: ["dynamodb:PutItem", "dynamodb:TransactWriteItems"],
+          resources: [this.productsTable.tableArn, this.stocksTable.tableArn],
+        }),
+      ],
     });
+  }
 
-    // Create API Gateway with CORS
-    const api = new apigateway.RestApi(this, "ProductsApi", {
+  private createSeedTables() {
+    return new nodejs.NodejsFunction(this, "SeedTablesFunction", {
+      entry: path.join(__dirname, "../handlers/seedTables.ts"),
+      handler: "seedTables",
+      runtime: cdk.aws_lambda.Runtime.NODEJS_18_X,
+      timeout: cdk.Duration.seconds(30),
+      environment: {
+        PRODUCTS_TABLE_NAME: this.productsTable.tableName,
+        STOCKS_TABLE_NAME: this.stocksTable.tableName,
+      },
+      bundling: {
+        externalModules: ["aws-sdk"],
+      },
+      initialPolicy: [
+        new iam.PolicyStatement({
+          actions: ["dynamodb:Scan", "dynamodb:BatchWriteItem"],
+          resources: [this.productsTable.tableArn, this.stocksTable.tableArn],
+        }),
+      ],
+    });
+  }
+
+  private createRestApi() {
+    return new apigateway.RestApi(this, "ProductsApi", {
       restApiName: "Products Service",
       defaultCorsPreflightOptions: {
         allowOrigins: ["http://localhost:3000", config.frontendUrl],
@@ -62,86 +161,6 @@ export class ProductServiceStack extends cdk.Stack {
           "X-Amz-Security-Token",
         ],
         allowCredentials: true,
-      },
-    });
-
-    // Create /products endpoint
-    const products = api.root.addResource("products");
-    products.addMethod(
-      "GET",
-      new apigateway.LambdaIntegration(getProductsList)
-    );
-
-    products.addMethod("POST", new apigateway.LambdaIntegration(createProduct));
-
-    // Create /products/{productId} endpoint
-    const product = products.addResource("{productId}");
-    product.addMethod("GET", new apigateway.LambdaIntegration(getProductsById));
-
-    // Output the API URL
-    new cdk.CfnOutput(this, "ApiUrl", {
-      value: api.url,
-      description: "API Gateway endpoint URL",
-    });
-
-    // Import existing DynamoDB tables
-    const productsTable = dynamodb.Table.fromTableName(
-      this,
-      "ImportedProductsTable",
-      "products"
-    );
-
-    const stocksTable = dynamodb.Table.fromTableName(
-      this,
-      "ImportedStocksTable",
-      "stocks"
-    );
-
-    // Create the seeding Lambda function
-    const seedFunction = new nodejs.NodejsFunction(this, "SeedTablesFunction", {
-      entry: path.join(__dirname, "../handlers/seedTables.ts"),
-      handler: "seedTables",
-      runtime: cdk.aws_lambda.Runtime.NODEJS_18_X,
-      timeout: cdk.Duration.seconds(30),
-      environment: {
-        PRODUCTS_TABLE_NAME: productsTable.tableName,
-        STOCKS_TABLE_NAME: stocksTable.tableName,
-      },
-      bundling: {
-        externalModules: ["aws-sdk"],
-      },
-    });
-
-    const productsTableArn = `arn:aws:dynamodb:${this.region}:${this.account}:table/products`;
-    const stocksTableArn = `arn:aws:dynamodb:${this.region}:${this.account}:table/stocks`;
-
-    seedFunction.addToRolePolicy(
-      new iam.PolicyStatement({
-        effect: iam.Effect.ALLOW,
-        actions: [
-          "dynamodb:Scan",
-          "dynamodb:PutItem",
-          "dynamodb:BatchWriteItem",
-        ],
-        resources: [productsTableArn, stocksTableArn],
-      })
-    );
-
-    // Grant permissions
-    productsTable.grantWriteData(seedFunction);
-    productsTable.grantWriteData(createProduct);
-    productsTable.grantReadData(getProductsList);
-    productsTable.grantReadData(getProductsById);
-
-    stocksTable.grantWriteData(seedFunction);
-    stocksTable.grantReadData(getProductsList);
-    stocksTable.grantReadData(getProductsById);
-
-    // Trigger seeding through Custom Resource
-    new cdk.CustomResource(this, "SeedingCustomResource", {
-      serviceToken: seedFunction.functionArn,
-      properties: {
-        timestamp: Date.now(), // Force update on each deployment
       },
     });
   }
