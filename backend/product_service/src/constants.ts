@@ -1,7 +1,7 @@
 import { Configuration } from "./config";
 
 export const ALLOWED_ORIGINS = [
-    Configuration.getConfig().frontendUrl || 'http://localhost:3000',
+    Configuration.getConfig()?.frontendUrl || 'http://localhost:3000',
     'http://localhost:3000'
 ];
 

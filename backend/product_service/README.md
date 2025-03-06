@@ -15,7 +15,7 @@ Make sure you have [Node.js](https://nodejs.org/) and [AWS CDK](https://aws.amaz
    ```
 2. Navigate to the project directory:
    ```sh
-   cd product_service
+   cd backend/product_service
    ```
 3. Install the dependencies:
    ```sh
@@ -32,23 +32,23 @@ Before deploying this application, you need to configure your AWS credentials. M
 
 ### Configure AWS Credentials
 1. Run AWS configure command:
-```bash
-aws configure
-AWS Access Key ID [None]: YOUR_ACCESS_KEY [[1]](https://docs.aws.amazon.com/prescriptive-guidance/latest/modernization-net-applications-security/iam-development.html)
-AWS Secret Access Key [None]: YOUR_SECRET_KEY [[2]](https://docs.aws.amazon.com/toolkit-for-visual-studio/latest/user-guide/deployment-beanstalk-specify-credentials.html)
-Default region name [None]: us-east-1
-Default output format [None]: json
+   ```bash
+   aws configure
+   AWS Access Key ID [None]: YOUR_ACCESS_KEY [[1]](https://docs.aws.amazon.com/prescriptive-guidance/latest/modernization-net-applications-security/iam-development.html)
+   AWS Secret Access Key [None]: YOUR_SECRET_KEY [[2]](https://docs.aws.amazon.com/toolkit-for-visual-studio/latest/user-guide/deployment-beanstalk-specify-credentials.html)
+   Default region name [None]: us-east-1
+   Default output format [None]: json
 
-# Verify configuration
-aws configure list
+   # Verify configuration
+   aws configure list
 
-# Configure named profiles (optional)
-aws configure --profile dev
-aws configure --profile prod
+   # Configure named profiles (optional)
+   aws configure --profile dev
+   aws configure --profile prod
 
-# Use specific profile
-aws configure list --profile dev
-```
+   # Use specific profile
+   aws configure list --profile dev
+   ```
 
 ### CDK Bootstrap
 
@@ -122,6 +122,9 @@ src/
       product_service.ts - Entry point for the AWS CDK application.
    handlers/
       getProductsList.ts - Lambda function handler for retrieving the list of products.
+      getProductsById.ts - Lambda function handler for retrieving a product by ID.
+      createProduct.ts - Lambda function handler for creating a new product.
+      seedTables.ts - Lambda function handler for seeding the database tables.
    lib/
       products-service-stack.ts - Defines the AWS infrastructure stack for the product service.
    mock/
