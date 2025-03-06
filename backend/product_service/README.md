@@ -151,3 +151,72 @@ The API documentation is available in OpenAPI (Swagger) format:
 
 You can view and test the API using [Swagger Editor](https://editor.swagger.io/)
 by copying the content of either file.
+
+### Available Endpoints
+
+#### GET /products
+- **Description**: Retrieves a list of all products.
+- **Response**: An array of product objects.
+- **Example Response**:
+  ```json
+  [
+    {
+      "id": "7567ec4b-b10c-48c5-9345-fc73c48a80aa",
+      "title": "Product 1",
+      "description": "Description for Product 1",
+      "price": 24.99,
+      "count": 10
+    },
+    {
+      "id": "7567ec4b-b10c-48c5-9345-fc73c48a80a1",
+      "title": "Product 2",
+      "description": "Description for Product 2",
+      "price": 15.45,
+      "count": 5
+    }
+  ]
+  ```
+
+#### GET /products/{productId}
+- **Description**: Retrieves a specific product by ID.
+- **Parameters**: 
+  - `productId` (path): The unique identifier for the product.
+- **Response**: A single product object.
+- **Error Responses**: 
+  - `404 Not Found`: When the product with the specified ID does not exist.
+- **Example Response**:
+  ```json
+  {
+    "id": "7567ec4b-b10c-48c5-9345-fc73c48a80aa",
+    "title": "Product 1",
+    "description": "Description for Product 1",
+    "price": 24.99,
+    "count": 10
+  }
+  ```
+
+#### POST /products
+- **Description**: Creates a new product.
+- **Request Body**: Product object without an ID.
+- **Response**: The created product object with a generated ID.
+- **Error Responses**: 
+  - `400 Bad Request`: When the product data is invalid.
+- **Example Request**:
+  ```json
+  {
+    "title": "New Product",
+    "description": "Description for New Product",
+    "price": 19.99,
+    "count": 15
+  }
+  ```
+- **Example Response**:
+  ```json
+  {
+    "id": "7567ec4b-b10c-48c5-9345-fc73c48a80a7",
+    "title": "New Product",
+    "description": "Description for New Product",
+    "price": 19.99,
+    "count": 15
+  }
+  ```

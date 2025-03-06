@@ -1,3 +1,5 @@
+import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
+
 export interface EnvironmentVariables {
   FRONTEND_URL: string;
   PRODUCTS_TABLE_NAME: string;
@@ -21,3 +23,8 @@ export interface Product {
   price: number;
   count: number;
 }
+
+export type LambdaHandlerType = (
+  event: APIGatewayProxyEvent,
+  headers: CorsHeaders
+) => Promise<APIGatewayProxyResult>;

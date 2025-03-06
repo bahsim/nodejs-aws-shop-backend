@@ -1,0 +1,38 @@
+digraph INFRA {
+  node [ color = "black", fillcolor = "#E6E6E6", height =1, style = "filled,bold,rounded", fontname = "Arial" ];
+  "ProductsApi" [ label = "ProductsApi
+(ApiGateway)", shape =rectangle, fillcolor = "#E78F81" ];
+  "GetProductsList" [ label = "GetProductsList
+(LambdaFunction)", shape =rectangle, fillcolor = "#B7E0FF" ];
+  "GetProductsById" [ label = "GetProductsById
+(LambdaFunction)", shape =rectangle, fillcolor = "#B7E0FF" ];
+  "CreateProduct" [ label = "CreateProduct
+(LambdaFunction)", shape =rectangle, fillcolor = "#B7E0FF" ];
+  "ImportedProductsTable" [ label = "ImportedProductsTable
+(DynamoDBTable)", shape =cylinder, fillcolor = "#FFCFB3" ];
+  "ImportedStocksTable" [ label = "ImportedStocksTable
+(DynamoDBTable)", shape =cylinder, fillcolor = "#FFCFB3" ];
+  "SeedTablesFunction" [ label = "SeedTablesFunction
+(LambdaFunction)", shape =rectangle, fillcolor = "#B7E0FF" ];
+  "ImportApi" [ label = "ImportApi
+(ApiGateway)", shape =rectangle, fillcolor = "#E78F81" ];
+  "ImportProductsFile" [ label = "ImportProductsFile
+(LambdaFunction)", shape =rectangle, fillcolor = "#B7E0FF" ];
+  "ImportFileParser" [ label = "ImportFileParser
+(LambdaFunction)", shape =rectangle, fillcolor = "#B7E0FF" ];
+  "ImportBucket" [ label = "ImportBucket
+(S3Bucket)", shape =cylinder, fillcolor = "#FFF5CD" ];
+  "ProductsApi" -> "GetProductsList";
+  "ProductsApi" -> "GetProductsById";
+  "ProductsApi" -> "CreateProduct";
+  "GetProductsList" -> "ImportedProductsTable";
+  "GetProductsList" -> "ImportedStocksTable";
+  "GetProductsById" -> "ImportedProductsTable";
+  "GetProductsById" -> "ImportedStocksTable";
+  "CreateProduct" -> "ImportedProductsTable";
+  "SeedTablesFunction" -> "ImportedProductsTable";
+  "SeedTablesFunction" -> "ImportedStocksTable";
+  "ImportApi" -> "ImportProductsFile";
+  "ImportProductsFile" -> "ImportBucket";
+  "ImportFileParser" -> "ImportBucket";
+}

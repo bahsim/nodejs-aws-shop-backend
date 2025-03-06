@@ -1,10 +1,10 @@
 import { APIGatewayProxyEvent } from "aws-lambda";
-import { products, stocks } from "../../mockData";
+import { products, stocks } from "../mockData";
 import { getProductsList } from "../../handlers/getProductsList";
 import { APIGatewayProxyEventGenerator } from "../utils/eventGenerator";
 import { describe, it, expect, beforeEach, jest } from "@jest/globals";
-import { ALLOWED_ORIGINS } from "../../constants";
-import { getCorsHeaders } from "../../cors";
+import { ALLOWED_ORIGINS } from "../../../../shared/src/constants";
+import { getCorsHeaders } from "../../../../shared/src/cors";
 
 jest.mock("@aws-sdk/lib-dynamodb", () => ({
   DynamoDBDocumentClient: {

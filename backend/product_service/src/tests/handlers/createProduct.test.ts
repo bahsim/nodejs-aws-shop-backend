@@ -1,7 +1,6 @@
-// src/tests/handlers/createProduct.test.ts
 import { APIGatewayProxyEvent } from 'aws-lambda';
 import { v4 as uuidv4 } from 'uuid';
-import { Configuration } from '../../config';
+import { Configuration } from '../../../../shared/src/config';
 import { createProduct } from '../../handlers/createProduct';
 import { jest, describe, it, expect, beforeEach, afterEach } from '@jest/globals';
 
