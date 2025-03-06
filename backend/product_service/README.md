@@ -1,7 +1,7 @@
 # Product Service
 
 ## Description
-This is a simple Node.js application that serves as a starting point for building your own applications. It includes an AWS Lambda function and an API Gateway to manage products.
+The Product Service is a Node.js application designed to manage products in an e-commerce platform. It leverages AWS Lambda functions and API Gateway to provide a serverless architecture for handling product-related operations. The service includes endpoints for creating, retrieving, updating, and deleting products, as well as seeding the database with initial data. This project serves as a foundation for building scalable and efficient serverless applications on AWS.
 
 ## Getting Started
 
@@ -112,8 +112,11 @@ npm run build
 ```
 
 ### API Endpoints
-Once deployed, you can access the API at the URL provided in the CloudFormation output. The available endpoint is:
+Once deployed, you can access the API at the URL provided in the CloudFormation output. The available endpoints are:
 - `GET /products`: Retrieves the list of products.
+- `GET /products/{productId}`: Retrieves a specific product by ID.
+- `POST /products`: Creates a new product.
+- `PUT /products/{productId}`: Updates an existing product by ID.
 
 ## Project Structure
 ```
@@ -124,6 +127,7 @@ src/
       getProductsList.ts - Lambda function handler for retrieving the list of products.
       getProductsById.ts - Lambda function handler for retrieving a product by ID.
       createProduct.ts - Lambda function handler for creating a new product.
+      updateProduct.ts - Lambda function handler for updating an existing product.
       seedTables.ts - Lambda function handler for seeding the database tables.
    lib/
       products-service-stack.ts - Defines the AWS infrastructure stack for the product service.
@@ -218,5 +222,34 @@ by copying the content of either file.
     "description": "Description for New Product",
     "price": 19.99,
     "count": 15
+  }
+  ```
+
+#### PUT /products/{productId}
+- **Description**: Updates an existing product by ID.
+- **Parameters**: 
+  - `productId` (path): The unique identifier for the product.
+- **Request Body**: Product object with updated data.
+- **Response**: The updated product object.
+- **Error Responses**: 
+  - `400 Bad Request`: When the product data is invalid.
+  - `404 Not Found`: When the product with the specified ID does not exist.
+- **Example Request**:
+  ```json
+  {
+    "title": "Updated Product",
+    "description": "Updated description for Product",
+    "price": 29.99,
+    "count": 20
+  }
+  ```
+- **Example Response**:
+  ```json
+  {
+    "id": "7567ec4b-b10c-48c5-9345-fc73c48a80a7",
+    "title": "Updated Product",
+    "description": "Updated description for Product",
+    "price": 29.99,
+    "count": 20
   }
   ```

@@ -7,7 +7,7 @@
     },
     "servers": [
       {
-        "url": "https://your-api-gateway-url.execute-api.eu-west-1.amazonaws.com/dev"
+        "url": "https://szwnmvp3ak.execute-api.eu-west-1.amazonaws.com/prod/"
       }
     ],
     "paths": {

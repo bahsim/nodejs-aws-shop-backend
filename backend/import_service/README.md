@@ -1,12 +1,12 @@
 # Import Service
 
 ## Description
-A microservice that handles importing products from CSV files via S3. The service consists of two Lambda functions: one for generating presigned URLs for file upload and another for parsing uploaded CSV files and storing them in the appropriate S3 location.
+The Import Service is a Node.js application designed to handle the import of product data into an e-commerce platform. It leverages AWS Lambda functions and API Gateway to provide a serverless architecture for managing product imports. The service includes endpoints for generating pre-signed URLs for uploading CSV files and processing the uploaded files to import product data. This project serves as a foundation for building scalable and efficient serverless applications on AWS.
 
 ## Getting Started
 
 ### Prerequisites
-Make sure you have [Node.js](https://nodejs.org/) (v18 or later) and [AWS CDK](https://aws.amazon.com/cdk/) installed on your machine.
+Make sure you have [Node.js](https://nodejs.org/) and [AWS CDK](https://aws.amazon.com/cdk/) installed on your machine.
 
 ### Installation
 1. Clone the repository:
@@ -17,7 +17,7 @@ Make sure you have [Node.js](https://nodejs.org/) (v18 or later) and [AWS CDK](h
    ```sh
    cd backend/import_service
    ```
-3. Install dependencies:
+3. Install the dependencies:
    ```sh
    npm install
    ```
@@ -26,7 +26,7 @@ Make sure you have [Node.js](https://nodejs.org/) (v18 or later) and [AWS CDK](h
 
 #### Prerequisites
 Before deploying this application, you need to configure your AWS credentials. Make sure you have:
-- AWS CLI installed
+- AWS CLI installed (`npm install -g aws-cdk`)
 - An AWS account
 - Access Key ID and Secret Access Key with appropriate permissions
 
@@ -34,8 +34,8 @@ Before deploying this application, you need to configure your AWS credentials. M
 1. Run AWS configure command:
    ```bash
    aws configure
-   AWS Access Key ID [None]: YOUR_ACCESS_KEY
-   AWS Secret Access Key [None]: YOUR_SECRET_KEY
+   AWS Access Key ID [None]: YOUR_ACCESS_KEY [[1]](https://docs.aws.amazon.com/prescriptive-guidance/latest/modernization-net-applications-security/iam-development.html)
+   AWS Secret Access Key [None]: YOUR_SECRET_KEY [[2]](https://docs.aws.amazon.com/toolkit-for-visual-studio/latest/user-guide/deployment-beanstalk-specify-credentials.html)
    Default region name [None]: us-east-1
    Default output format [None]: json
 
@@ -45,9 +45,13 @@ Before deploying this application, you need to configure your AWS credentials. M
    # Configure named profiles (optional)
    aws configure --profile dev
    aws configure --profile prod
+
+   # Use specific profile
+   aws configure list --profile dev
    ```
 
 ### CDK Bootstrap
+
 Before deploying CDK applications for the first time in an AWS environment (account/region), you need to bootstrap the environment:
 
 ```bash
@@ -72,45 +76,65 @@ To destroy the deployed application, use the following command:
 npm run cdk:destroy
 ```
 
-### Building the Project
+### Running the Application Locally
+To start the application locally, you can use the following command:
+```sh
+npm start
+```
+
+### Other Commands
+
+#### Linting the Code
+To check the code for any linting errors, run:
+```sh
+npm run lint
+```
+
+#### Run all tests
+```sh
+npm test
+```
+
+#### Run tests with coverage report
+```sh
+npm run test:coverage
+```
+
+#### Run tests in watch mode during development
+```sh
+npm run test:watch
+```
+
+#### Building the Project
 To compile the TypeScript code to JavaScript, run:
 ```sh
 npm run build
 ```
 
-### Watch Mode for Development
-For continuous compilation during development:
-```sh
-npm run watch
-```
-
-### Running Tests
-Run all tests:
-```sh
-npm test
-```
-
 ### API Endpoints
 Once deployed, you can access the API at the URL provided in the CloudFormation output. The available endpoints are:
-
-- `GET /import`: Generates a presigned URL for uploading CSV files to S3.
-- `S3 Event Trigger`: An S3 event trigger processes uploaded CSV files automatically.
+- `GET /import`: Retrieves the import URL for uploading a CSV file.
+- `POST /import`: Processes the uploaded CSV file.
 
 ## Project Structure
 ```
-import-service/
-├── src/
-│   ├── bin/
-│   │   └── import-service.ts     # Entry point for the AWS CDK application
-│   ├── handlers/                 # Lambda function handlers
-│   │   ├── importProductsFile.ts # Handler for generating presigned URLs
-│   │   └── importFileParser.ts   # Handler for parsing CSV files
-│   └── lib/
-│       └── import-service-stack.ts # Defines the AWS infrastructure stack
-├── package.json                  # Project dependencies and scripts
-├── tsconfig.json                 # TypeScript configuration
-├── cdk.json                      # CDK configuration
-└── README.md                     # Project documentation
+src/
+   bin/
+      import_service.ts - Entry point for the AWS CDK application.
+   handlers/
+      importProductsFile.ts - Lambda function handler for retrieving the import URL.
+      importFileParser.ts - Lambda function handler for processing the uploaded CSV file.
+   lib/
+      import-service-stack.ts - Defines the AWS infrastructure stack for the import service.
+   mock/
+      mockData.ts - Contains mock data for testing purposes.
+node_modules/ - Contains the project's dependencies.
+test/
+   import-service.test.ts - Unit tests for the import service.
+cdk.json - Configuration file for AWS CDK.
+package.json - Defines the project's dependencies and scripts.
+README.md - Provides an overview and documentation for the project.
+tsconfig.json - TypeScript configuration file.
 ```
 
 ## Contributing
@@ -120,27 +144,34 @@ Feel free to submit issues or pull requests to improve the project.
 This project is licensed under the ISC License.
 
 ## API Documentation
-The API documentation is available in OpenAPI (Swagger) format. You can view and test the API using [Swagger Editor](https://editor.swagger.io/).
+The API documentation is available in OpenAPI (Swagger) format:
+- YAML version: [openapi.yaml](docs/openapi.yaml)
+- JSON version: [openapi.json](docs/openapi.json)
+
+You can view and test the API using [Swagger Editor](https://editor.swagger.io/)
+by copying the content of either file.
 
 ### Available Endpoints
 
 #### GET /import
-- **Description**: Generates a presigned URL for uploading CSV files to S3.
-- **Query Parameters**: 
-  - `name` (required): The name of the file to be uploaded.
-- **Response**: A presigned URL string that can be used to upload the file.
-- **Error Responses**: 
-  - `400 Bad Request`: When the file name is not provided.
+- **Description**: Retrieves the import URL for uploading a CSV file.
+- **Response**: A pre-signed URL for uploading the CSV file.
 - **Example Response**:
   ```json
   {
-    "url": "https://XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX/uploaded/filename.csv?AWSAccessKeyId=..."
+    "url": "https://bucket-name.s3.amazonaws.com/uploaded/import.csv?AWSAccessKeyId=AKIA...&Expires=1609459200&Signature=..."
   }
   ```
 
-#### S3 Event Processing
-- **Description**: Automatically triggered when a file is uploaded to the S3 bucket in the "uploaded" folder.
-- **Process**: 
-  1. Reads the CSV file content
-  2. Processes each row
-  3. Moves the processed file from the "uploaded" folder to the "parsed" folder
+#### POST /import
+- **Description**: Processes the uploaded CSV file.
+- **Request Body**: CSV file content.
+- **Response**: A success message.
+- **Error Responses**: 
+  - `400 Bad Request`: When the CSV file is invalid.
+- **Example Response**:
+  ```json
+  {
+    "message": "File processed successfully"
+  }
+  ```
