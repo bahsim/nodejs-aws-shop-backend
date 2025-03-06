@@ -37,6 +37,7 @@ export class ImportServiceStack extends cdk.Stack {
       BUCKET_NAME: config.bucketName,
       UPLOAD_FOLDER: config.uploadFolder,
       PARSED_FOLDER: config.parsedFolder,
+      FRONTEND_URL: config.frontendUrl,
     },
   };
 
