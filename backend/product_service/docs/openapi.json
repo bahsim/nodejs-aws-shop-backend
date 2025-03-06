@@ -11,7 +11,7 @@
     },
     "servers": [
       {
-        "url": "https://ul14jrs9xb.execute-api.eu-west-1.amazonaws.com/prod/",
+        "url": "https://wf86btrwx8.execute-api.eu-west-1.amazonaws.com/prod",
         "description": "Production server"
       },
       {
@@ -36,6 +36,55 @@
                     "items": {
                       "$ref": "#/components/schemas/Product"
                     }
+                  }
+                }
+              }
+            },
+            "500": {
+              "description": "Internal Server Error",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/Error"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "post": {
+          "summary": "Create a new product",
+          "description": "Adds a new product to the store",
+          "operationId": "createProduct",
+          "tags": ["Products"],
+          "requestBody": {
+            "description": "Product to add",
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Product"
+                }
+              }
+            }
+          },
+          "responses": {
+            "201": {
+              "description": "Product created successfully",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/Product"
+                  }
+                }
+              }
+            },
+            "400": {
+              "description": "Bad Request - Invalid input",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/Error"
                   }
                 }
               }
@@ -166,4 +215,3 @@
       }
     ]
   }
-  
