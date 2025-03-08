@@ -50,6 +50,9 @@ export class Configuration {
       bucketName: env.BUCKET_NAME || "bahsim-import-service",
       uploadFolder: env.UPLOAD_FOLDER || "uploaded",
       parsedFolder: env.PARSED_FOLDER || "parsed",
+      snsTopicArn: env.SNS_TOPIC_ARN,
+      emailSubscription: env.EMAIL_SUBSCRIPTION || "",
+      sqsQueueUrl: env.SQS_QUEUE_URL || "",
     };
   }
 }
