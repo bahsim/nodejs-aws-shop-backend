@@ -49,7 +49,14 @@ const stocks = products.map((product) => ({
   count: Math.floor(Math.random() * 10) + 1,
 }));
 
-// Helper function to send response to CloudFormation
+/**
+ * Sends a response to the provided CloudFormation response URL.
+ *
+ * @param event - The event object containing details about the CloudFormation request.
+ * @param status - The status of the response, typically "SUCCESS" or "FAILED".
+ * @param reason - Optional. A string providing the reason for the status. Defaults to "See CloudWatch logs for details".
+ * @returns A promise that resolves when the response has been successfully sent, or rejects if an error occurs.
+ */
 const sendResponse = async (event: any, status: string, reason?: string) => {
   const responseBody = JSON.stringify({
     Status: status,

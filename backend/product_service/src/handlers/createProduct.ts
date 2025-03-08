@@ -10,11 +10,44 @@ import { Configuration } from "../../../shared/src/config";
 import { lambdaHandler } from "../../../shared/src/lambdaHandler";
 import { CorsHeaders } from "../../../shared/src/types";
 import { createResponse } from "../../../shared/src/utils";
+import { EnvironmentRequiredVariables } from "../constants";
 
 const client = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(client);
-const config = Configuration.getConfig();
+const config = Configuration.getConfig(EnvironmentRequiredVariables);
 
+/**
+ * Handler for creating a new product.
+ *
+ * This function processes an incoming API Gateway event to create a new product
+ * and its associated stock in the database. It performs validation on the input
+ * data and ensures that the product and stock do not already exist before
+ * attempting to create them.
+ *
+ * @param event - The API Gateway event containing the request data.
+ * @param headers - The CORS headers to include in the response.
+ * @returns A promise that resolves to an API Gateway proxy result.
+ *
+ * @throws Will throw an error if the transaction fails for reasons other than
+ *         validation or conflict.
+ *
+ * @example
+ * // Example of a valid request body:
+ * // {
+ * //   "title": "Sample Product",
+ * //   "description": "This is a sample product.",
+ * //   "price": 19.99,
+ * //   "count": 10
+ * // }
+ *
+ * @example
+ * // Example of a successful response:
+ * // {
+ * //   "statusCode": 201,
+ * //   "headers": { ... },
+ * //   "body": "{\"id\":\"1234\",\"title\":\"Sample Product\",\"description\":\"This is a sample product.\",\"price\":19.99,\"count\":10}"
+ * // }
+ */
 export const createProduct = lambdaHandler(
   async (
     event: APIGatewayProxyEvent,

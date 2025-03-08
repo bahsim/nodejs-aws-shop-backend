@@ -6,6 +6,13 @@ export interface EnvironmentVariables {
   STOCKS_TABLE_NAME: string;
   DEBUG_MODE?: string;
   REGION?: string;
+  STAGE?: string;
+  BUCKET_NAME?: string;
+  UPLOAD_FOLDER?: string;
+  PARSED_FOLDER?: string;
+  SNS_TOPIC_ARN?: string;
+  EMAIL_SUBSCRIPTION?: string;
+  SQS_QUEUE_URL?: string;
 }
 
 export interface CorsHeaders {
