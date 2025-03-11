@@ -19,7 +19,7 @@ jest.mock('@aws-sdk/lib-dynamodb', () => ({
 }));
 
 // Mock Configuration
-jest.mock('../../config');
+jest.mock("../../../../shared/src/config");
 
 // Mock CORS headers
 const mockHeaders = {
