@@ -56,15 +56,17 @@ export const catalogBatchProcess = async (event: SQSEvent): Promise<void> => {
  * This function checks if the necessary environment variables are set.
  * If any of the required environment variables are missing, it throws an error.
  *
- * @throws {Error} If the PRODUCTS_TABLE environment variable is not set.
+ * @throws {Error} If the PRODUCTS_TABLE_NAME environment variable is not set.
  * @throws {Error} If the SNS_TOPIC_ARN environment variable is not set.
  */
 
 function validateEnvironmentVariables() {
-  if (!process.env.PRODUCTS_TABLE) {
-    throw new Error("PRODUCTS_TABLE environment variable is not set");
+  const config = Configuration.getConfig(EnvironmentRequiredVariables);
+
+  if (!config.productsTableName) {
+    throw new Error("PRODUCTS_TABLE_NAME environment variable is not set");
   }
-  if (!process.env.SNS_TOPIC_ARN) {
+  if (!config.snsTopicArn) {
     throw new Error("SNS_TOPIC_ARN environment variable is not set");
   }
 }
@@ -132,6 +134,8 @@ function getRecordBody(record: SQSEvent["Records"][0]): Product {
   if (!record.body) {
     throw new Error("Record body is missing");
   }
+
+  console.log("Record body:", record.body);
   return JSON.parse(record.body);
 }
 

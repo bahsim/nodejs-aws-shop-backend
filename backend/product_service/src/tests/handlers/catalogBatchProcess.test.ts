@@ -22,7 +22,7 @@ describe("catalogBatchProcess Lambda", () => {
 
     ddbMock.reset();
     snsMock.reset();
-    process.env.PRODUCTS_TABLE = "test-table";
+    process.env.PRODUCTS_TABLE_NAME = "test-table";
     process.env.SNS_TOPIC_ARN = "test-topic-arn";
   });
 
@@ -255,8 +255,8 @@ describe("catalogBatchProcess Lambda", () => {
 
   // 4. Environment Variable Tests
   describe("Environment Variables", () => {
-    it("should throw error when PRODUCTS_TABLE is missing", async () => {
-      delete process.env.PRODUCTS_TABLE;
+    it("should throw error when PRODUCTS_TABLE_NAME is missing", async () => {
+      delete process.env.PRODUCTS_TABLE_NAME;
 
       const event: SQSEvent = {
         Records: [

@@ -52,6 +52,8 @@ export class Configuration {
       parsedFolder: env.PARSED_FOLDER || "parsed",
       snsTopicArn: env.SNS_TOPIC_ARN,
       emailSubscription: env.EMAIL_SUBSCRIPTION || "",
+      emailSubscription2: env.EMAIL_SUBSCRIPTION2 || "",
+      emailSubscription3: env.EMAIL_SUBSCRIPTION3 || "",
       sqsQueueUrl: env.SQS_QUEUE_URL || "",
     };
   }

@@ -12,6 +12,8 @@ export interface EnvironmentVariables {
   PARSED_FOLDER?: string;
   SNS_TOPIC_ARN?: string;
   EMAIL_SUBSCRIPTION?: string;
+  EMAIL_SUBSCRIPTION2?: string;
+  EMAIL_SUBSCRIPTION3?: string;
   SQS_QUEUE_URL?: string;
 }
 
