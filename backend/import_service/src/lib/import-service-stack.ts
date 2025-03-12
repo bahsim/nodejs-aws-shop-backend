@@ -146,7 +146,7 @@ export class ImportServiceStack extends cdk.Stack {
     // Grant permissions to send messages to the queue
     this.lambdas.importFileParser.addToRolePolicy(
       new iam.PolicyStatement({
-        actions: ["sqs:SendMessage"],
+        actions: ["sqs:SendMessage", "sqs:GetQueueUrl"],
         resources: [this.catalogItemsQueueArn],
       })
     );

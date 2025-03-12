@@ -87,8 +87,8 @@ export class ProductServiceStack extends cdk.Stack {
 
     // Initialize DynamoDB tables with error handling
     try {
-      this.productsTable = this.importDynamoDBTable("products");
-      this.stocksTable = this.importDynamoDBTable("stocks");
+      this.productsTable = this.importDynamoDBTable(config.productsTableName);
+      this.stocksTable = this.importDynamoDBTable(config.stocksTableName);
     } catch (error) {
       throw new Error(`Failed to import DynamoDB tables: ${error}`);
     }
@@ -121,6 +121,11 @@ export class ProductServiceStack extends cdk.Stack {
     new cdk.CfnOutput(this, "ApiUrl", {
       value: this.restApi.url,
       description: "API Gateway endpoint URL",
+    });
+
+    new cdk.CfnOutput(this, "CatalogItemsQueueUrl", {
+      value: this.catalogItemsQueue.queueUrl,
+      exportName: "CatalogItemsQueueUrl",
     });
 
     new cdk.CfnOutput(this, "CatalogItemsQueueArn", {
@@ -178,6 +183,7 @@ export class ProductServiceStack extends cdk.Stack {
         {
           environment: {
             SNS_TOPIC_ARN: this.createProductTopic.topicArn,
+            PRODUCTS_TABLE_NAME: config.productsTableName,
           },
         }
       ),
@@ -276,7 +282,9 @@ export class ProductServiceStack extends cdk.Stack {
     // Write permissions
     this.productsTable.grantWriteData(this.lambdas.createProduct);
     this.productsTable.grantWriteData(this.lambdas.seedTables);
+    this.productsTable.grantWriteData(this.lambdas.catalogBatchProcess);
     this.stocksTable.grantWriteData(this.lambdas.seedTables);
+    this.stocksTable.grantWriteData(this.lambdas.catalogBatchProcess);
   }
 
   private createSeedingResource() {
@@ -303,7 +311,7 @@ export class ProductServiceStack extends cdk.Stack {
 
     // Add filtered subscription for high-price products
     this.createProductTopic.addSubscription(
-      new snsSubs.EmailSubscription(config.emailSubscription, {
+      new snsSubs.EmailSubscription(config.emailSubscription2, {
         filterPolicy: {
           price: sns.SubscriptionFilter.numericFilter({
             greaterThan: 100,
@@ -314,7 +322,7 @@ export class ProductServiceStack extends cdk.Stack {
 
     // Add filtered subscription for low-price products
     this.createProductTopic.addSubscription(
-      new snsSubs.EmailSubscription(config.emailSubscription, {
+      new snsSubs.EmailSubscription(config.emailSubscription3, {
         filterPolicy: {
           price: sns.SubscriptionFilter.numericFilter({
             lessThanOrEqualTo: 100,

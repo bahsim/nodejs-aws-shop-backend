@@ -104,19 +104,19 @@ async function streamToBuffer(stream: any): Promise<Buffer> {
 
 /**
  * Processes a readable CSV stream, parses each row, and sends each parsed row as a message to an SQS queue.
- * 
+ *
  * @param readableStream - The readable stream containing the CSV data.
  * @param key - The key associated with the CSV file being processed.
  * @returns A promise that resolves when the CSV parsing and message sending is complete.
- * 
+ *
  * @throws Will reject the promise if there is an error parsing the CSV.
- * 
+ *
  * The function performs the following steps:
  * 1. Reads the CSV data from the provided readable stream.
  * 2. Parses each row of the CSV, converting numeric strings to numbers.
  * 3. Sends each parsed row as a message to an SQS queue.
  * 4. Logs the total number of rows processed.
- * 
+ *
  * Note: If an error occurs while sending a message to SQS, the error is logged, but the processing continues for other rows.
  */
 async function processCSVStream(
@@ -131,6 +131,10 @@ async function processCSVStream(
     readableStream
       .pipe(
         csvParser({
+          mapHeaders: ({ header }) => {
+            // Clean the BOM from header if it exists and return the cleaned header
+            return header.replace(/^\uFEFF/, "");
+          },
           mapValues: ({ header, value }) => {
             // Convert numeric strings to numbers
             if (!isNaN(value as any) && value !== "") {
@@ -141,7 +145,9 @@ async function processCSVStream(
           strict: true, // Enable strict mode to catch malformed CSV
         })
       )
-      .on("data", async (data: Record<string, unknown>) => {
+      .on("data", async (data: Record<string, string | number>) => {
+        console.log("Processing row:", data);
+
         try {
           await sqsClient.send(
             new SendMessageCommand({
