@@ -10,6 +10,7 @@ import { Construct } from "constructs";
 import * as path from "path";
 import { Configuration } from "../../../shared/src/config";
 import { EnvironmentRequiredVariables } from "../constants";
+import { LAMBDA_FUNCTIONS } from "../../../shared/src/constants";
 
 interface LambdaConfig {
   runtime: lambda.Runtime;
@@ -20,6 +21,13 @@ interface LambdaConfig {
 
 const config = Configuration.getConfig(EnvironmentRequiredVariables);
 
+/**
+ * The `ImportServiceStack` class defines an AWS CDK stack for the Import Service.
+ * This stack sets up the necessary AWS resources including S3 bucket, Lambda functions,
+ * API Gateway, and necessary permissions and configurations.
+ *
+ * @extends {cdk.Stack}
+ */
 export class ImportServiceStack extends cdk.Stack {
   private bucket: s3.IBucket;
   private lambdas: {
@@ -27,6 +35,9 @@ export class ImportServiceStack extends cdk.Stack {
     importFileParser: cdk.aws_lambda_nodejs.NodejsFunction;
   };
   private readonly restApi: cdk.aws_apigateway.RestApi;
+  private readonly catalogItemsQueueUrl: string;
+  private readonly catalogItemsQueueArn: string;
+  private readonly authorizer: cdk.aws_apigateway.TokenAuthorizer;
 
   // Common Lambda configuration
   private readonly defaultLambdaConfig: LambdaConfig = {
@@ -44,6 +55,13 @@ export class ImportServiceStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
+    // Create the authorizer
+    this.authorizer = this.createAuthorizer();
+
+    // Import the queue URL from Product Service stack
+    this.catalogItemsQueueUrl = cdk.Fn.importValue("CatalogItemsQueueUrl");
+    this.catalogItemsQueueArn = cdk.Fn.importValue("CatalogItemsQueueArn");
+
     // Initialize S3 bucket
     try {
       this.bucket = this.importBucket();
@@ -55,7 +73,10 @@ export class ImportServiceStack extends cdk.Stack {
     this.lambdas = this.createLambdaFunctions();
 
     // Grant S3 permissions
-    this.configureBucketPermissions();
+    this.grantBucketPermissions();
+
+    // Grant Lambda permissions
+    this.grantLambdasPermissions();
 
     // Configure S3 event notification
     this.configureS3EventNotification();
@@ -70,6 +91,24 @@ export class ImportServiceStack extends cdk.Stack {
     new cdk.CfnOutput(this, "ApiUrl", {
       value: this.restApi.url,
       description: "API Gateway endpoint URL for Import Service",
+    });
+  }
+
+  private createAuthorizer(): apigateway.TokenAuthorizer {
+    const authorizerFn = lambda.Function.fromFunctionArn(
+      this,
+      "ImportAuthorizer",
+      this.formatArn({
+        service: "lambda",
+        resource: "function",
+        resourceName:
+          LAMBDA_FUNCTIONS.authorizationService.basicAuthorizer.name,
+      })
+    );
+
+    return new apigateway.TokenAuthorizer(this, "ImportApiAuthorizer", {
+      handler: authorizerFn,
+      identitySource: apigateway.IdentitySource.header("Authorization"),
     });
   }
 
@@ -89,7 +128,13 @@ export class ImportServiceStack extends cdk.Stack {
       ),
       importFileParser: this.createLambdaFunction(
         "ImportFileParser",
-        "importFileParser"
+        "importFileParser",
+        {
+          environment: {
+            ...this.defaultLambdaConfig.environment,
+            SQS_QUEUE_URL: this.catalogItemsQueueUrl,
+          },
+        }
       ),
     };
   }
@@ -105,13 +150,19 @@ export class ImportServiceStack extends cdk.Stack {
       handler,
       ...this.defaultLambdaConfig,
       ...overrides,
+      environment: {
+        ...this.defaultLambdaConfig.environment,
+        ...overrides.environment,
+      },
     });
   }
 
-  private configureBucketPermissions(): void {
+  private grantBucketPermissions(): void {
     this.bucket.grantReadWrite(this.lambdas.importProductsFile);
     this.bucket.grantReadWrite(this.lambdas.importFileParser);
+  }
 
+  private grantLambdasPermissions(): void {
     this.lambdas.importFileParser.addToRolePolicy(
       new iam.PolicyStatement({
         actions: ["s3:PutObject", "s3:DeleteObject"],
@@ -119,6 +170,14 @@ export class ImportServiceStack extends cdk.Stack {
           `${this.bucket.bucketArn}/${config.uploadFolder}/*`,
           `${this.bucket.bucketArn}/${config.parsedFolder}/*`,
         ],
+      })
+    );
+
+    // Grant permissions to send messages to the queue
+    this.lambdas.importFileParser.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["sqs:SendMessage", "sqs:GetQueueUrl"],
+        resources: [this.catalogItemsQueueArn],
       })
     );
   }
@@ -159,6 +218,8 @@ export class ImportServiceStack extends cdk.Stack {
           requestParameters: {
             "method.request.querystring.name": true,
           },
+          authorizer: this.authorizer,
+          authorizationType: apigateway.AuthorizationType.CUSTOM,
         }
       );
   }

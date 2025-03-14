@@ -10,6 +10,11 @@ export interface EnvironmentVariables {
   BUCKET_NAME?: string;
   UPLOAD_FOLDER?: string;
   PARSED_FOLDER?: string;
+  SNS_TOPIC_ARN?: string;
+  EMAIL_SUBSCRIPTION?: string;
+  EMAIL_SUBSCRIPTION2?: string;
+  EMAIL_SUBSCRIPTION3?: string;
+  SQS_QUEUE_URL?: string;
 }
 
 export interface CorsHeaders {

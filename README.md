@@ -170,13 +170,13 @@ Key Component Interactions:
 
 2. Deployment Steps:
 ```bash
-# Deploy Product Service
-cd backend/product_service
-npm run cdk deploy
+# Deploy all services at once
+npm run cdk:deploy:all
 
-# Deploy Import Service
-cd ../import_service
-npm run cdk deploy
+# Or deploy individual services: [[1]](https://aws.amazon.com/blogs/mt/serverless-governance-of-software-deployed-with-aws-service-catalog/)
+npm run cdk:deploy:product_service     # Deploy Product Service
+npm run cdk:deploy:import_service      # Deploy Import Service
+npm run cdk:deploy:authorization_service # Deploy Authorization Service
 ```
 
 3. Environment Configuration:
