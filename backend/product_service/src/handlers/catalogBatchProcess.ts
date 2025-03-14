@@ -12,6 +12,7 @@ const docClient = DynamoDBDocumentClient.from(ddbClient);
 const snsClient = new SNSClient({});
 
 interface Product {
+  id: string;
   title: string;
   description: string;
   price: number;
@@ -89,6 +90,7 @@ function validateProduct(product: Product): product is Product {
 
   // Check required fields exist
   if (
+    !product.id ||
     !product.title ||
     !product.description ||
     !product.price ||
@@ -140,20 +142,37 @@ function getRecordBody(record: SQSEvent["Records"][0]): Product {
 }
 
 /**
- * Saves a product to the DynamoDB table.
+ * Saves a product to DynamoDB by inserting it into the products table and the stocks table.
  *
- * @param {Product} product - The product object to be saved.
- * @returns {Promise<void>} A promise that resolves when the product is successfully saved.
+ * @param {Product} product - The product to be saved.
+ * @returns {Promise<void>} A promise that resolves when the product has been saved.
  *
- * @throws {Error} Throws an error if the DynamoDB operation fails.
+ * @throws {Error} If there is an issue with saving the product to DynamoDB.
  */
 async function saveProductToDynamoDB(product: Product): Promise<void> {
   const config = Configuration.getConfig(EnvironmentRequiredVariables);
-  const command = new PutCommand({
-    TableName: config.productsTableName,
-    Item: product,
-  });
-  await docClient.send(command);
+
+  await docClient.send(
+    new PutCommand({
+      TableName: config.productsTableName,
+      Item: {
+        id: product.id,
+        title: product.title,
+        description: product.description,
+        price: product.price,
+      },
+    })
+  );
+
+  await docClient.send(
+    new PutCommand({
+      TableName: config.stocksTableName,
+      Item: {
+        product_id: product.id,
+        count: product.count,
+      },
+    })
+  );
 }
 
 /**
