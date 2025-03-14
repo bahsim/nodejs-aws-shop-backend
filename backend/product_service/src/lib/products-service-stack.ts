@@ -192,6 +192,7 @@ export class ProductServiceStack extends cdk.Stack {
           environment: {
             SNS_TOPIC_ARN: this.createProductTopic.topicArn,
             PRODUCTS_TABLE_NAME: config.productsTableName,
+            STOCKS_TABLE_NAME: config.stocksTableName,
           },
         }
       ),
