@@ -10,19 +10,21 @@ import csvParser from "csv-parser";
 import { Readable } from "stream";
 import { Configuration } from "../../../shared/src/config";
 import { EnvironmentRequiredVariables } from "../constants";
+import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs";
 
+const sqsClient = new SQSClient({});
 const s3Client = new S3Client({});
 
 /**
  * Handler for parsing files imported to an S3 bucket.
- * 
+ *
  * This function processes S3 events, retrieves the file from the S3 bucket,
  * converts the file stream to a buffer, processes the CSV content, and moves
  * the file to a parsed folder within the bucket.
- * 
+ *
  * @param {S3Event} event - The S3 event containing records of the files to be processed.
  * @returns {Promise<void>} - A promise that resolves when the processing is complete.
- * 
+ *
  * @throws {S3ServiceException} - If there is an error with the S3 service.
  * @throws {Error} - For general errors during processing.
  */
@@ -101,27 +103,38 @@ async function streamToBuffer(stream: any): Promise<Buffer> {
 }
 
 /**
- * Processes a readable stream of CSV data and parses it into an array of records.
- * 
- * @param readableStream - The readable stream containing CSV data.
- * @param key - A unique identifier for the CSV file being processed.
- * @returns A promise that resolves when the CSV parsing is complete.
- * 
- * The function reads the CSV data from the provided readable stream, parses each row,
- * and logs the parsed data. It also converts numeric strings to numbers and operates
- * in strict mode to catch malformed CSV data. The promise resolves when the entire
- * CSV has been processed, or rejects if an error occurs during parsing.
+ * Processes a readable CSV stream, parses each row, and sends each parsed row as a message to an SQS queue.
+ *
+ * @param readableStream - The readable stream containing the CSV data.
+ * @param key - The key associated with the CSV file being processed.
+ * @returns A promise that resolves when the CSV parsing and message sending is complete.
+ *
+ * @throws Will reject the promise if there is an error parsing the CSV.
+ *
+ * The function performs the following steps:
+ * 1. Reads the CSV data from the provided readable stream.
+ * 2. Parses each row of the CSV, converting numeric strings to numbers.
+ * 3. Sends each parsed row as a message to an SQS queue.
+ * 4. Logs the total number of rows processed.
+ *
+ * Note: If an error occurs while sending a message to SQS, the error is logged, but the processing continues for other rows.
  */
 async function processCSVStream(
   readableStream: Readable,
   key: string
 ): Promise<void> {
+  const config = Configuration.getConfig(EnvironmentRequiredVariables);
+
   return new Promise((resolve, reject) => {
     const results: Record<string, unknown>[] = [];
 
     readableStream
       .pipe(
         csvParser({
+          mapHeaders: ({ header }) => {
+            // Clean the BOM from header if it exists and return the cleaned header
+            return header.replace(/^\uFEFF/, "");
+          },
           mapValues: ({ header, value }) => {
             // Convert numeric strings to numbers
             if (!isNaN(value as any) && value !== "") {
@@ -132,9 +145,21 @@ async function processCSVStream(
           strict: true, // Enable strict mode to catch malformed CSV
         })
       )
-      .on("data", (data: Record<string, unknown>) => {
-        console.log("Parsed CSV row:", JSON.stringify(data));
-        results.push(data);
+      .on("data", async (data: Record<string, string | number>) => {
+        console.log("Processing row:", data);
+
+        try {
+          await sqsClient.send(
+            new SendMessageCommand({
+              QueueUrl: config.sqsQueueUrl,
+              MessageBody: JSON.stringify(data),
+            })
+          );
+          results.push(data);
+        } catch (error) {
+          console.error("Error sending message to SQS:", error);
+          // Continue processing other records even if one fails
+        }
       })
       .on("end", () => {
         console.log(`CSV parsing complete for ${key}`);
@@ -150,9 +175,9 @@ async function processCSVStream(
 
 /**
  * Moves a file from one location to another within the same S3 bucket.
- * 
+ *
  * This function first copies the file to the new location and then deletes the original file.
- * 
+ *
  * @param bucket - The name of the S3 bucket.
  * @param sourceKey - The key (path) of the source file to be moved.
  * @param targetKey - The key (path) of the target location where the file should be moved.
