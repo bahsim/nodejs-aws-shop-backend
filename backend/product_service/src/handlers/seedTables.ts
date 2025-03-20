@@ -7,9 +7,12 @@ import {
 import { APIGatewayProxyEvent } from "aws-lambda";
 import * as https from "https";
 import * as url from "url";
+import { Configuration } from "../../../shared/src/config";
+import { EnvironmentRequiredVariables } from "../constants";
 
 const client = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(client);
+const config = Configuration.getConfig(EnvironmentRequiredVariables);
 
 const products = [
   {
@@ -104,7 +107,7 @@ export const seedTables = async (event: APIGatewayProxyEvent) => {
     // Check existing products
     const existingProducts = await docClient.send(
       new ScanCommand({
-        TableName: "products",
+        TableName: config.productsTableName,
       })
     );
 
@@ -141,7 +144,7 @@ export const seedTables = async (event: APIGatewayProxyEvent) => {
       await docClient.send(
         new BatchWriteCommand({
           RequestItems: {
-            ["products"]: productRequests,
+            [config.productsTableName]: productRequests,
           },
         })
       );
@@ -152,7 +155,7 @@ export const seedTables = async (event: APIGatewayProxyEvent) => {
       await docClient.send(
         new BatchWriteCommand({
           RequestItems: {
-            [process.env.STOCKS_TABLE!]: stockRequests,
+            [config.stocksTableName]: stockRequests,
           },
         })
       );
