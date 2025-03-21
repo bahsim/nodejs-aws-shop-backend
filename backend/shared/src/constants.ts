@@ -33,7 +33,7 @@ export const LAMBDA_FUNCTIONS = {
     },
     seedTables: {
       name: "SeedTables",
-      handler: "SeedTables",
+      handler: "seedTables",
     },
     catalogBatchProcess: {
       name: "CatalogBatchProcess",

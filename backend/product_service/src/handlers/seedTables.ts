@@ -16,34 +16,64 @@ const config = Configuration.getConfig(EnvironmentRequiredVariables);
 
 const products = [
   {
-    id: "1",
+    id: "8e1f4f96-c5f6-4a88-a10a-7e4b21f578da",
     title: "Logitech MX Master 3",
     description: "Advanced Wireless Mouse",
     price: 99,
   },
   {
-    id: "2",
+    id: "b4c5d8e1-f2a3-4b6c-9d8e-1f2a3b4c5d8e",
     title: "Keychron K2",
     description: "Wireless Mechanical Keyboard",
     price: 79,
   },
   {
-    id: "3",
+    id: "c7d8e9f0-1a2b-3c4d-5e6f-7a8b9c0d1e2f",
     title: "Dell U2720Q",
     description: "27-inch 4K USB-C Monitor",
     price: 579,
   },
   {
-    id: "4",
+    id: "d1e2f3a4-b5c6-7d8e-9f0a-1b2c3d4e5f6a",
     title: "Jabra Elite 85t",
     description: "True Wireless Earbuds",
     price: 229,
   },
   {
-    id: "5",
+    id: "e5f6a7b8-c9d0-1e2f-3a4b-5c6d7e8f9a0b",
     title: "Samsung T7",
     description: "1TB Portable SSD",
     price: 129,
+  },
+  {
+    id: "f9a0b1c2-d3e4-5f6a-7b8c-9d0e1f2a3b4c",
+    title: 'LG 34" Ultrawide',
+    description: "34-inch WQHD Curved Gaming Monitor",
+    price: 799,
+  },
+  {
+    id: "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
+    title: "Blue Yeti",
+    description: "USB Professional Microphone",
+    price: 129,
+  },
+  {
+    id: "b5c6d7e8-f9a0-1b2c-3d4e-5f6a7b8c9d0e",
+    title: "Logitech C920",
+    description: "HD Pro Webcam",
+    price: 79,
+  },
+  {
+    id: "c9d0e1f2-a3b4-5c6d-7e8f-9a0b1c2d3e4f",
+    title: "Anker USB-C Hub",
+    description: "7-in-1 USB-C Data Hub",
+    price: 35,
+  },
+  {
+    id: "d3e4f5a6-b7c8-9d0e-1f2a-3b4c5d6e7f8a",
+    title: "Sony WH-1000XM4",
+    description: "Wireless Noise Cancelling Headphones",
+    price: 349,
   },
 ];
 

@@ -18,72 +18,99 @@ interface PolicyDocument {
       Resource: string;
     }>;
   };
+  context?: {
+    statusCode: number;
+    message?: string;
+  };
 }
 
+interface Context {
+  callbackWaitsForEmptyEventLoop: boolean;
+  functionName: string;
+  functionVersion: string;
+  invokedFunctionArn: string;
+  memoryLimitInMB: number;
+  awsRequestId: string;
+  logGroupName: string;
+  logStreamName: string;
+  getRemainingTimeInMillis(): number;
+}
+
+type Callback<TResult = any> = (
+  error?: Error | string | null,
+  result?: TResult
+) => void;
+
 /**
- * Basic authorizer function for AWS Lambda to handle custom authorization.
+ * Basic authorizer function for AWS API Gateway.
  *
- * @param {AuthorizerEvent} event - The event object containing the authorization token.
- * @returns {Promise<object>} - A promise that resolves to an IAM policy or an error response.
+ * @param event - The event object containing the authorization token and other details.
+ * @param _context - The context object (not used in this function).
+ * @param callback - The callback function to return the authorization result.
  *
- * The function performs the following steps:
- * 1. Logs the incoming event.
- * 2. Checks if the authorization token is provided. If not, returns a 401 Unauthorized response.
- * 3. Decodes the credentials from the authorization token.
- * 4. Validates the credentials format. If invalid, returns a 401 Unauthorized response.
- * 5. Extracts the username and password from the decoded credentials.
- * 6. Retrieves the stored password for the given username from environment variables.
- * 7. If the username is not found, returns a 403 Forbidden response.
- * 8. Compares the provided password with the stored password.
- * 9. If the passwords match, generates an IAM policy with "Allow" effect.
- * 10. If the passwords do not match, returns a 403 Forbidden response.
- * 11. Catches any errors during the process and returns a 500 Internal Server Error response.
+ * @returns void
  *
- * @throws {Error} If an unexpected error occurs during authorization.
+ * This function performs basic authorization by decoding the credentials from the authorization token,
+ * checking the username and password against stored environment variables, and generating an appropriate
+ * IAM policy to allow or deny access.
+ *
+ * If the authorization token is missing or invalid, the function returns an "Unauthorized" error.
+ * If the credentials are valid, the function returns an IAM policy with "Allow" or "Deny" effect based on the
+ * password match.
+ *
+ * @throws Will return an "Error" if an exception occurs during the process.
  */
-export const basicAuthorizer = async (event: AuthorizerEvent) => {
+export const basicAuthorizer = (
+  event: AuthorizerEvent,
+  _context: Context,
+  callback: Callback
+): void => {
   console.log("Event:", JSON.stringify(event));
 
-  if (!event.authorizationToken) {
-    return generateErrorResponse(401, "Unauthorized: No token provided");
+  if (
+    !event.authorizationToken ||
+    event.authorizationToken === "null" ||
+    event.authorizationToken === ""
+  ) {
+    return callback(
+      null,
+      generatePolicy("user", "Deny", event.methodArn, "unauthorized")
+    );
   }
 
   try {
     const credentials = decodeCredentials(event.authorizationToken);
 
     if (!credentials) {
-      return generateErrorResponse(401, "Unauthorized: Invalid token format");
+      return callback(
+        null,
+        generatePolicy("user", "Deny", event.methodArn, "unauthorized")
+      );
     }
 
     const { username, password } = credentials;
-    const storedPassword = process.env[username];
 
-    if (!storedPassword) {
-      return generateErrorResponse(403, "Forbidden: User not found");
+    if (!username || !password) {
+      return callback(
+        null,
+        generatePolicy("user", "Deny", event.methodArn, "unauthorized")
+      );
     }
 
-    return storedPassword === password
-      ? generatePolicy(username, "Allow", event.methodArn)
-      : generateErrorResponse(403, "Forbidden: Invalid credentials");
+    const storedPassword = process.env[username];
+
+    if (!storedPassword || storedPassword !== password) {
+      return callback(
+        null,
+        generatePolicy(username, "Deny", event.methodArn, "forbidden")
+      );
+    }
+
+    return callback(null, generatePolicy(username, "Allow", event.methodArn));
   } catch (error) {
-    console.error("Authorization error:", error);
-    return generateErrorResponse(500, "Internal server error");
+    return callback("Error");
   }
 };
-
-/**
- * Generates an HTTP error response object.
- *
- * @param statusCode - The HTTP status code of the error response.
- * @param message - The error message to include in the response body.
- * @returns An object representing the HTTP error response with the specified status code and message.
- */
-function generateErrorResponse(statusCode: number, message: string) {
-  return {
-    statusCode,
-    body: JSON.stringify({ message }),
-  };
-}
 
 /**
  * Decodes the Basic Authentication credentials from the provided authorization header.
@@ -97,7 +124,7 @@ function decodeCredentials(authHeader: string): Credentials | null {
     if (!encodedCreds) return null;
 
     const decodedCreds = Buffer.from(encodedCreds, "base64").toString("utf-8");
-    const [username, password] = decodedCreds.split(":");
+    const [username, password] = decodedCreds.split("=");
 
     return username && password ? { username, password } : null;
   } catch (error) {
@@ -107,17 +134,19 @@ function decodeCredentials(authHeader: string): Credentials | null {
 }
 
 /**
- * Generates an IAM policy document.
+ * Generates an IAM policy document for API Gateway authorizer.
  *
- * @param principalId - The principal user identifier associated with the policy.
+ * @param principalId - The principal user identifier associated with the token.
  * @param effect - The effect of the policy, either "Allow" or "Deny".
- * @param resource - The resource ARN to which the policy applies.
- * @returns The generated policy document.
+ * @param resource - The API Gateway resource ARN that the policy applies to.
+ * @param authError - Optional parameter to specify the type of authorization error, either "unauthorized" or "forbidden".
+ * @returns A policy document object containing the principalId, policyDocument, and context with a message and statusCode.
  */
 function generatePolicy(
   principalId: string,
   effect: "Allow" | "Deny",
-  resource: string
+  resource: string,
+  authError?: "unauthorized" | "forbidden"
 ): PolicyDocument {
   return {
     principalId,
@@ -130,6 +159,16 @@ function generatePolicy(
           Resource: resource,
         },
       ],
+    },
+    context: {
+      message:
+        effect === "Allow"
+          ? "Successfully authenticated"
+          : authError === "unauthorized"
+          ? "Unauthorized: Invalid credentials"
+          : "Forbidden: Access denied",
+      statusCode:
+        effect === "Allow" ? 200 : authError === "unauthorized" ? 401 : 403,
     },
   };
 }

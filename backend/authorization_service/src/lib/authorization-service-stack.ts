@@ -1,10 +1,9 @@
-// authorization-service/lib/authorization-service-stack.ts
 import * as cdk from "aws-cdk-lib";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
 import { config as dotenvConfig } from "dotenv";
 import { join } from "path";
-import { LAMBDA_FUNCTIONS, GITHUB_USER_NAME } from "../../shared/src/constants";
+import { LAMBDA_FUNCTIONS, GITHUB_USER_NAME } from "../../../shared/src/constants";
 
 dotenvConfig();
 

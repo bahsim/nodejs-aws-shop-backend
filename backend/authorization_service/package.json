@@ -4,13 +4,20 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "cdk": "cdk",
+    "cdk:deploy": "cdk deploy",
+    "cdk:destroy": "cdk destroy",
+    "cdk:diff": "cdk diff",
+    "cdk:synth": "cdk synth",
+    "cdk:bootstrap": "cdk bootstrap"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "@types/node": "^22.13.10",
     "aws-cdk-lib": "^2.182.0",
-    "dotenv": "^16.4.7"
+    "dotenv": "^16.4.7",
+    "esbuild": "^0.25.1"
   }
 }

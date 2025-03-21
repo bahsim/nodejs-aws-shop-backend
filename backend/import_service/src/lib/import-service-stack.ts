@@ -1,4 +1,3 @@
-// import-service-stack.ts
 import * as cdk from "aws-cdk-lib";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as lambda from "aws-cdk-lib/aws-lambda";
@@ -84,6 +83,9 @@ export class ImportServiceStack extends cdk.Stack {
     // Create API Gateway
     this.restApi = this.createApiGateway();
 
+    // Add gateway responses
+    this.addGatewayResponses();
+
     // Create /import endpoint
     this.configureApiEndpoints();
 
@@ -95,20 +97,23 @@ export class ImportServiceStack extends cdk.Stack {
   }
 
   private createAuthorizer(): apigateway.TokenAuthorizer {
-    const authorizerFn = lambda.Function.fromFunctionArn(
+    // First, get the authorizer function ARN from the environment or constants
+    const authorizerFunctionName =
+      LAMBDA_FUNCTIONS.authorizationService.basicAuthorizer.name;
+
+    // Import the existing Lambda function
+    const authorizerFn = lambda.Function.fromFunctionName(
       this,
       "ImportAuthorizer",
-      this.formatArn({
-        service: "lambda",
-        resource: "function",
-        resourceName:
-          LAMBDA_FUNCTIONS.authorizationService.basicAuthorizer.name,
-      })
+      authorizerFunctionName
     );
 
+    // Create the authorizer with proper configuration
     return new apigateway.TokenAuthorizer(this, "ImportApiAuthorizer", {
       handler: authorizerFn,
       identitySource: apigateway.IdentitySource.header("Authorization"),
+      resultsCacheTtl: cdk.Duration.seconds(0), // Disable caching
+      validationRegex: "^(?:Basic|Bearer) [-0-9a-zA-Z._~+/]+=*$", // Optional: validate token format
     });
   }
 
@@ -204,6 +209,40 @@ export class ImportServiceStack extends cdk.Stack {
           "X-Amz-Security-Token",
         ],
         allowCredentials: true,
+      },
+    });
+  }
+
+  private addGatewayResponses(): void {
+    this.addGatewayResponse(
+      "Unauthorized",
+      apigateway.ResponseType.UNAUTHORIZED,
+      "401"
+    );
+    this.addGatewayResponse(
+      "Forbidden",
+      apigateway.ResponseType.ACCESS_DENIED,
+      "403"
+    );
+  }
+
+  private addGatewayResponse(
+    name: string,
+    type: apigateway.ResponseType,
+    statusCode: string
+  ): void {
+    this.restApi.addGatewayResponse(name, {
+      type: type,
+      statusCode: statusCode,
+      responseHeaders: {
+        "Access-Control-Allow-Origin": "'*'",
+        "Access-Control-Allow-Headers": "'Content-Type,Authorization'",
+      },
+      templates: {
+        "application/json": JSON.stringify({
+          message: "$context.authorizer.message",
+          statusCode: "$context.authorizer.statusCode",
+        }),
       },
     });
   }
