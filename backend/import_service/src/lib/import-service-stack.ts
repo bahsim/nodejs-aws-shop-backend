@@ -1,4 +1,3 @@
-// import-service-stack.ts
 import * as cdk from "aws-cdk-lib";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as lambda from "aws-cdk-lib/aws-lambda";
@@ -10,6 +9,7 @@ import { Construct } from "constructs";
 import * as path from "path";
 import { Configuration } from "../../../shared/src/config";
 import { EnvironmentRequiredVariables } from "../constants";
+import { LAMBDA_FUNCTIONS } from "../../../shared/src/constants";
 
 interface LambdaConfig {
   runtime: lambda.Runtime;
@@ -20,6 +20,13 @@ interface LambdaConfig {
 
 const config = Configuration.getConfig(EnvironmentRequiredVariables);
 
+/**
+ * The `ImportServiceStack` class defines an AWS CDK stack for the Import Service.
+ * This stack sets up the necessary AWS resources including S3 bucket, Lambda functions,
+ * API Gateway, and necessary permissions and configurations.
+ *
+ * @extends {cdk.Stack}
+ */
 export class ImportServiceStack extends cdk.Stack {
   private bucket: s3.IBucket;
   private lambdas: {
@@ -29,6 +36,7 @@ export class ImportServiceStack extends cdk.Stack {
   private readonly restApi: cdk.aws_apigateway.RestApi;
   private readonly catalogItemsQueueUrl: string;
   private readonly catalogItemsQueueArn: string;
+  private readonly authorizer: cdk.aws_apigateway.TokenAuthorizer;
 
   // Common Lambda configuration
   private readonly defaultLambdaConfig: LambdaConfig = {
@@ -45,6 +53,9 @@ export class ImportServiceStack extends cdk.Stack {
 
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
+
+    // Create the authorizer
+    this.authorizer = this.createAuthorizer();
 
     // Import the queue URL from Product Service stack
     this.catalogItemsQueueUrl = cdk.Fn.importValue("CatalogItemsQueueUrl");
@@ -72,6 +83,9 @@ export class ImportServiceStack extends cdk.Stack {
     // Create API Gateway
     this.restApi = this.createApiGateway();
 
+    // Add gateway responses
+    this.addGatewayResponses();
+
     // Create /import endpoint
     this.configureApiEndpoints();
 
@@ -79,6 +93,27 @@ export class ImportServiceStack extends cdk.Stack {
     new cdk.CfnOutput(this, "ApiUrl", {
       value: this.restApi.url,
       description: "API Gateway endpoint URL for Import Service",
+    });
+  }
+
+  private createAuthorizer(): apigateway.TokenAuthorizer {
+    // First, get the authorizer function ARN from the environment or constants
+    const authorizerFunctionName =
+      LAMBDA_FUNCTIONS.authorizationService.basicAuthorizer.name;
+
+    // Import the existing Lambda function
+    const authorizerFn = lambda.Function.fromFunctionName(
+      this,
+      "ImportAuthorizer",
+      authorizerFunctionName
+    );
+
+    // Create the authorizer with proper configuration
+    return new apigateway.TokenAuthorizer(this, "ImportApiAuthorizer", {
+      handler: authorizerFn,
+      identitySource: apigateway.IdentitySource.header("Authorization"),
+      resultsCacheTtl: cdk.Duration.seconds(0), // Disable caching
+      validationRegex: "^(?:Basic|Bearer) [-0-9a-zA-Z._~+/]+=*$", // Optional: validate token format
     });
   }
 
@@ -178,6 +213,40 @@ export class ImportServiceStack extends cdk.Stack {
     });
   }
 
+  private addGatewayResponses(): void {
+    this.addGatewayResponse(
+      "Unauthorized",
+      apigateway.ResponseType.UNAUTHORIZED,
+      "401"
+    );
+    this.addGatewayResponse(
+      "Forbidden",
+      apigateway.ResponseType.ACCESS_DENIED,
+      "403"
+    );
+  }
+
+  private addGatewayResponse(
+    name: string,
+    type: apigateway.ResponseType,
+    statusCode: string
+  ): void {
+    this.restApi.addGatewayResponse(name, {
+      type: type,
+      statusCode: statusCode,
+      responseHeaders: {
+        "Access-Control-Allow-Origin": "'*'",
+        "Access-Control-Allow-Headers": "'Content-Type,Authorization'",
+      },
+      templates: {
+        "application/json": JSON.stringify({
+          message: "$context.authorizer.message",
+          statusCode: "$context.authorizer.statusCode",
+        }),
+      },
+    });
+  }
+
   private configureApiEndpoints(): void {
     this.restApi.root
       .addResource("import")
@@ -188,6 +257,8 @@ export class ImportServiceStack extends cdk.Stack {
           requestParameters: {
             "method.request.querystring.name": true,
           },
+          authorizer: this.authorizer,
+          authorizationType: apigateway.AuthorizationType.CUSTOM,
         }
       );
   }

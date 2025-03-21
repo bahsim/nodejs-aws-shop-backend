@@ -7,6 +7,7 @@ import * as nodejs from "aws-cdk-lib/aws-lambda-nodejs";
 import { Construct } from "constructs";
 import * as path from "path";
 import { Configuration } from "../../../shared/src/config";
+import { LAMBDA_FUNCTIONS } from "../../../shared/src/constants";
 import { EnvironmentRequiredVariables } from "../constants";
 import * as sqs from "aws-cdk-lib/aws-sqs";
 import * as sns from "aws-cdk-lib/aws-sns";
@@ -145,16 +146,16 @@ export class ProductServiceStack extends cdk.Stack {
   private createLambdaFunctions() {
     return {
       getProductsList: this.createLambdaFunction(
-        "GetProductsList",
-        "getProductsList"
+        LAMBDA_FUNCTIONS.productService.getProductsList.name,
+        LAMBDA_FUNCTIONS.productService.getProductsList.handler
       ),
       getProductsById: this.createLambdaFunction(
-        "GetProductsById",
-        "getProductsById"
+        LAMBDA_FUNCTIONS.productService.getProductsById.name,
+        LAMBDA_FUNCTIONS.productService.getProductsById.handler
       ),
       createProduct: this.createLambdaFunction(
-        "CreateProduct",
-        "createProduct",
+        LAMBDA_FUNCTIONS.productService.createProduct.name,
+        LAMBDA_FUNCTIONS.productService.createProduct.handler,
         {
           timeout: cdk.Duration.seconds(15),
           initialPolicy: [
@@ -168,18 +169,25 @@ export class ProductServiceStack extends cdk.Stack {
           ],
         }
       ),
-      seedTables: this.createLambdaFunction("SeedTables", "seedTables", {
-        timeout: cdk.Duration.seconds(30),
-        initialPolicy: [
-          new iam.PolicyStatement({
-            actions: ["dynamodb:Scan", "dynamodb:BatchWriteItem"],
-            resources: [this.productsTable.tableArn, this.stocksTable.tableArn],
-          }),
-        ],
-      }),
+      seedTables: this.createLambdaFunction(
+        LAMBDA_FUNCTIONS.productService.seedTables.name,
+        LAMBDA_FUNCTIONS.productService.seedTables.handler,
+        {
+          timeout: cdk.Duration.seconds(30),
+          initialPolicy: [
+            new iam.PolicyStatement({
+              actions: ["dynamodb:Scan", "dynamodb:BatchWriteItem"],
+              resources: [
+                this.productsTable.tableArn,
+                this.stocksTable.tableArn,
+              ],
+            }),
+          ],
+        }
+      ),
       catalogBatchProcess: this.createLambdaFunction(
-        "CatalogBatchProcess",
-        "catalogBatchProcess",
+        LAMBDA_FUNCTIONS.productService.catalogBatchProcess.name,
+        LAMBDA_FUNCTIONS.productService.catalogBatchProcess.handler,
         {
           environment: {
             SNS_TOPIC_ARN: this.createProductTopic.topicArn,

@@ -7,9 +7,10 @@
     "install:shared": "cd backend/shared && npm install",
     "install:product_service": "cd backend/product_service && npm install",
     "install:import_service": "cd backend/import_service && npm install",
-    "cdk:deploy:all": "npm run cdk:deploy:product_service && npm run cdk:deploy:import_service",
+    "cdk:deploy:all": "npm run cdk:deploy:product_service && npm run cdk:deploy:authorization_service && npm run cdk:deploy:import_service",
     "cdk:deploy:product_service": "cd backend/product_service && npm run cdk:deploy",
-    "cdk:deploy:import_service": "cd backend/import_service && npm run cdk:deploy"
+    "cdk:deploy:import_service": "cd backend/import_service && npm run cdk:deploy",
+    "cdk:deploy:authorization_service": "cd backend/authorization_service && npm run cdk:deploy"
   },
   "author": "",
   "license": "ISC"
