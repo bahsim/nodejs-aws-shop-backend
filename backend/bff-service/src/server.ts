@@ -6,14 +6,17 @@ const server = createServer(
   async (req: IncomingMessage, res: ServerResponse) => {
     try {
       // Enable CORS
-      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.setHeader(
+        "Access-Control-Allow-Origin",
+        config.cors.allowedOrigins.join(",")
+      );
       res.setHeader(
         "Access-Control-Allow-Methods",
-        "GET, POST, PUT, DELETE, OPTIONS"
+        config.cors.allowedMethods.join(",")
       );
       res.setHeader(
         "Access-Control-Allow-Headers",
-        "Content-Type, Authorization"
+        config.cors.allowedHeaders.join(",")
       );
 
       if (req.method === "OPTIONS") {
