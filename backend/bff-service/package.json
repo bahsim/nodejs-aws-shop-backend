@@ -1,0 +1,23 @@
+{
+  "name": "bff-service",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "node dist/server.js",
+    "dev": "ts-node src/server.ts",
+    "build": "tsc",
+    "test": "jest",
+    "eb:init": "eb init --platform node.js --region eu-west-1 bahsim-bff-api",
+    "eb:create": "scripts\\create-eb-env.cmd",
+    "eb:terminate": "eb terminate bff-api-env",
+    "eb:setenv": "scripts\\set-eb-env.cmd",
+    "eb:deploy": "npm run build && eb deploy bff-api-env"
+  },
+  "dependencies": {
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.9.0",
+    "typescript": "^5.2.2",
+    "ts-node": "^10.9.1"
+  }
+}
